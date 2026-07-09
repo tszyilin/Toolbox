@@ -85,11 +85,14 @@ def chat(request: ChatRequest):
             content={"error": "ANTHROPIC_API_KEY not set on the server."},
         )
 
-    client = anthropic.Anthropic(api_key=api_key)
-    response = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=512,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": m.role, "content": m.content} for m in request.messages],
-    )
-    return {"reply": response.content[0].text}
+    try:
+        client = anthropic.Anthropic(api_key=api_key)
+        response = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=512,
+            system=SYSTEM_PROMPT,
+            messages=[{"role": m.role, "content": m.content} for m in request.messages],
+        )
+        return {"reply": response.content[0].text}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})

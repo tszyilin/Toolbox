@@ -52,10 +52,11 @@ export default function ChatBot() {
         body: JSON.stringify({ messages: newMessages }),
       });
       const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply ?? data.error ?? "Something went wrong." },
-      ]);
+      if (!res.ok) {
+        setMessages((prev) => [...prev, { role: "assistant", content: `Error: ${data.error ?? data.detail ?? res.statusText}` }]);
+      } else {
+        setMessages((prev) => [...prev, { role: "assistant", content: data.reply ?? "No response." }]);
+      }
     } catch {
       setMessages((prev) => [
         ...prev,
