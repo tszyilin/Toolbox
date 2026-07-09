@@ -134,21 +134,24 @@ export default function IFDClimateChangePage() {
   const aepCols = result?.aep_cols ?? [];
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "#EEE9DA" }}>
-      <div className="max-w-5xl mx-auto px-6 py-12">
-        <div className="mb-8">
-          <Link href="/" className="text-sm hover:underline" style={{ color: "#6096B4" }}>
+    <main className="min-h-screen" style={{ backgroundColor: "#BDCDD6" }}>
+      {/* Blue header band */}
+      <div className="px-6 py-8" style={{ backgroundColor: "#6096B4" }}>
+        <div className="max-w-5xl mx-auto">
+          <Link href="/" className="text-sm hover:underline" style={{ color: "#EEE9DA" }}>
             ← Back to Toolbox
           </Link>
-          <h1 className="mt-4 text-3xl font-bold" style={{ color: "#1e2a35" }}>
+          <h1 className="mt-3 text-3xl font-bold text-white">
             IFD Climate Change Adjustment
           </h1>
-          <p className="mt-2 text-sm" style={{ color: "#6096B4" }}>
+          <p className="mt-1 text-sm" style={{ color: "#EEE9DA" }}>
             Adjusts 2016 IFD curves for climate change per ARR Book 1 Chapter 6 (Eq. 1.6.1).
             Upload the CSV exported directly from the BOM 2016 IFD portal.
           </p>
         </div>
-
+      </div>
+      {/* Content on #BDCDD6 */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
         <form
           onSubmit={handleSubmit}
           className="bg-white rounded-xl shadow-sm p-8 space-y-6"

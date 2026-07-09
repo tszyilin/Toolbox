@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ChatBot from "./components/ChatBot";
 
 const tools = [
   {
@@ -19,38 +20,50 @@ const tools = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-brand-cream">
-      <div className="max-w-5xl mx-auto px-6 py-16">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Toolbox</h1>
-          <p className="mt-3 text-lg" style={{ color: "#6096B4" }}>Engineering calculation tools</p>
+    <main className="min-h-screen" style={{ backgroundColor: "#BDCDD6" }}>
+      {/* Hero header band — #6096B4 dominant */}
+      <div className="px-6 py-10" style={{ backgroundColor: "#6096B4" }}>
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-4xl font-bold tracking-tight text-white">Welcome to Toolbox</h1>
+          <p className="mt-2 text-base" style={{ color: "#EEE9DA" }}>
+            Tell the assistant what you want to do and it will guide you to the right tool.
+          </p>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="group block rounded-xl border bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200"
-              style={{ borderColor: "#BDCDD6" }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#6096B4")}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#BDCDD6")}
-            >
-              <span
-                className="inline-block text-xs font-semibold uppercase tracking-widest mb-3"
-                style={{ color: "#93BFCF" }}
+      {/* #93BFCF band — chatbot sits here */}
+      <div className="px-6 py-8" style={{ backgroundColor: "#93BFCF" }}>
+        <div className="max-w-3xl mx-auto">
+
+        {/* Chatbot */}
+        <ChatBot />
+        </div>
+      </div>
+
+      {/* #BDCDD6 band — tool cards */}
+      <div className="px-6 py-8" style={{ backgroundColor: "#BDCDD6" }}>
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-sm font-semibold uppercase tracking-widest mb-4 text-white">
+            All Tools
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {tools.map((tool) => (
+              <Link
+                key={tool.href}
+                href={tool.href}
+                className="group block rounded-xl border p-5 shadow-sm hover:shadow-md transition-all duration-200"
+                style={{ backgroundColor: "#EEE9DA", borderColor: "#93BFCF" }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#6096B4")}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#93BFCF")}
               >
-                {tool.category}
-              </span>
-              <h2
-                className="text-lg font-semibold transition-colors"
-                style={{ color: "#1e2a35" }}
-              >
-                {tool.name}
-              </h2>
-              <p className="mt-2 text-sm text-gray-500">{tool.description}</p>
-            </Link>
-          ))}
+                <span className="inline-block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#6096B4" }}>
+                  {tool.category}
+                </span>
+                <h3 className="text-base font-semibold" style={{ color: "#1e2a35" }}>{tool.name}</h3>
+                <p className="mt-1 text-sm" style={{ color: "#4d7d99" }}>{tool.description}</p>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </main>
