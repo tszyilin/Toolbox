@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -31,12 +31,13 @@ export default function FloatingChat() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Don't show on home page — it already has the embedded chatbot
-  if (pathname === "/") return null;
-
+  // All hooks must come before any conditional return
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Don't show on home page — it already has the embedded chatbot
+  if (pathname === "/") return null;
 
   async function send() {
     const text = input.trim();
@@ -71,13 +72,13 @@ export default function FloatingChat() {
             width: "340px",
             height: "460px",
             backgroundColor: "white",
-            border: "1px solid #BDCDD6",
+            border: "1px solid #8CB6D0",
           }}
         >
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-            style={{ backgroundColor: "#6096B4" }}
+            style={{ backgroundColor: "#1A72B5" }}
           >
             <span className="text-sm font-semibold text-white">Toolbox Assistant</span>
             <button
@@ -99,7 +100,7 @@ export default function FloatingChat() {
                   <div
                     className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
                     style={{
-                      backgroundColor: isUser ? "#6096B4" : "#f0f4f7",
+                      backgroundColor: isUser ? "#1A72B5" : "#f0f4f7",
                       color: isUser ? "white" : "#1e2a35",
                       borderBottomRightRadius: isUser ? "4px" : undefined,
                       borderBottomLeftRadius: !isUser ? "4px" : undefined,
@@ -111,7 +112,7 @@ export default function FloatingChat() {
                         href={toolPath}
                         onClick={() => setOpen(false)}
                         className="mt-2 flex items-center gap-1 text-xs font-semibold rounded-lg px-2.5 py-1.5 w-fit"
-                        style={{ backgroundColor: "#6096B4", color: "white" }}
+                        style={{ backgroundColor: "#1A72B5", color: "white" }}
                       >
                         Open {toolName} →
                       </Link>
@@ -122,7 +123,7 @@ export default function FloatingChat() {
             })}
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl px-3 py-2 text-xs" style={{ backgroundColor: "#f0f4f7", color: "#6096B4" }}>
+                <div className="rounded-2xl px-3 py-2 text-xs" style={{ backgroundColor: "#f0f4f7", color: "#1A72B5" }}>
                   Thinking…
                 </div>
               </div>
@@ -131,7 +132,7 @@ export default function FloatingChat() {
           </div>
 
           {/* Input */}
-          <div className="p-2.5 flex gap-2 flex-shrink-0" style={{ borderTop: "1px solid #BDCDD6" }}>
+          <div className="p-2.5 flex gap-2 flex-shrink-0" style={{ borderTop: "1px solid #8CB6D0" }}>
             <input
               type="text"
               value={input}
@@ -139,13 +140,13 @@ export default function FloatingChat() {
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask something…"
               className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none"
-              style={{ border: "1px solid #BDCDD6", color: "#1e2a35" }}
+              style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
             />
             <button
               onClick={send}
               disabled={loading || !input.trim()}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-40 flex-shrink-0"
-              style={{ backgroundColor: "#6096B4" }}
+              style={{ backgroundColor: "#1A72B5" }}
             >
               Send
             </button>
@@ -157,7 +158,7 @@ export default function FloatingChat() {
       <button
         onClick={() => setOpen(!open)}
         className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
-        style={{ backgroundColor: "#6096B4" }}
+        style={{ backgroundColor: "#1A72B5" }}
         title="Open assistant"
       >
         {open ? (

@@ -104,20 +104,38 @@ def _apply_factor(value: float, alpha: float, delta_t: float) -> float:
     return round(value * (1 + alpha / 100) ** delta_t, 3)
 
 
-def _parse_bom_csv(csv_bytes: bytes) -> tuple[pd.DataFrame, list[float], list[str]]:
+def _parse_bom_csv(csv_bytes: bytes) -> tuple[pd.DataFrame, list[float], list[str], list[str], pd.Series]:
     """
-    Parse BOM IFD CSV export. Handles:
-    - 8-row metadata header
-    - First col = Duration label, second col = Duration in min, rest = AEP columns
-    Returns (df with duration_hr as index, list of dur_hr, list of aep_col_names)
+    Parse BOM IFD CSV export. Dynamically locates the AEP label row so any
+    number of metadata rows is handled correctly.
+    Returns (df, dur_hr list, aep_col_names, header_lines, dur_min_series)
     """
-    raw = pd.read_csv(io.BytesIO(csv_bytes), skiprows=8, header=1, index_col=0)
+    text = csv_bytes.decode("utf-8", errors="replace")
+    lines = text.splitlines()
+
+    # Find the row containing the AEP label (e.g. "Annual Exceedance Probability (AEP)")
+    aep_label_idx = next(
+        (i for i, line in enumerate(lines) if "Annual Exceedance Probability" in line),
+        None,
+    )
+    if aep_label_idx is None:
+        raise ValueError("Could not find 'Annual Exceedance Probability' row in CSV.")
+
+    # Column header row immediately follows the AEP label row
+    col_header_idx = aep_label_idx + 1
+
+    # Preserve everything up to and including the column header for export
+    header_lines = lines[:col_header_idx + 1]
+
+    # Skip all rows up to (and including) the AEP label; first remaining row is the header
+    raw = pd.read_csv(io.BytesIO(csv_bytes), skiprows=col_header_idx, header=0, index_col=0)
     dur_min_col = raw.columns[0]  # "Duration in min"
     aep_cols = [c for c in raw.columns if c != dur_min_col]
     dur_hr = (raw[dur_min_col].astype(float) / 60).tolist()
+    dur_min_series = raw[dur_min_col]
     df = raw[aep_cols].copy()
     df.index.name = "Duration"
-    return df, dur_hr, aep_cols
+    return df, dur_hr, aep_cols, header_lines, dur_min_series
 
 
 def _parse_simple_csv(csv_bytes: bytes) -> tuple[pd.DataFrame, list[float], list[str]]:
@@ -139,9 +157,6 @@ def run(
     ssp: str,
     time_period: str,
     delta_t_choice: str,  # "median", "low", "high"
-    nrm_cluster: str | None,
-    initial_loss: float | None,
-    continuing_loss: float | None,
 ) -> dict:
     delta_t_values = DELTA_T[ssp][time_period]
     idx = {"median": 0, "low": 1, "high": 2}[delta_t_choice]
@@ -154,12 +169,15 @@ def run(
     except Exception:
         is_bom = False
 
+    header_lines = None
+    dur_min_series = None
+
     if is_bom:
-        df, dur_hrs, aep_cols = _parse_bom_csv(csv_bytes)
-        orientation = "duration_rows"  # rows=durations, cols=AEPs
+        df, dur_hrs, aep_cols, header_lines, dur_min_series = _parse_bom_csv(csv_bytes)
+        orientation = "duration_rows"
     else:
         df, dur_hrs, aep_cols = _parse_simple_csv(csv_bytes)
-        orientation = "aep_rows"  # rows=AEPs, cols=durations
+        orientation = "aep_rows"
 
     # Apply climate change factor per duration
     adjusted_df = df.copy().astype(float)
@@ -172,19 +190,15 @@ def run(
             alpha = _get_alpha(dur)[idx]
             adjusted_df[col] = [_apply_factor(v, alpha, delta_t) for v in df[col]]
 
-    # Loss parameter adjustments
-    loss_result = None
-    if nrm_cluster and nrm_cluster in NRM_LOSS_RATES:
-        rates = NRM_LOSS_RATES[nrm_cluster]
-        loss_result = {}
-        if initial_loss is not None:
-            il_alpha = rates["IL"][idx]
-            loss_result["initial_loss_adjusted"] = _apply_factor(initial_loss, il_alpha, delta_t)
-            loss_result["initial_loss_original"] = initial_loss
-        if continuing_loss is not None:
-            cl_alpha = rates["CL"][idx]
-            loss_result["continuing_loss_adjusted"] = _apply_factor(continuing_loss, cl_alpha, delta_t)
-            loss_result["continuing_loss_original"] = continuing_loss
+    # Build BOM-format output CSV
+    bom_csv = None
+    if is_bom and header_lines is not None and dur_min_series is not None:
+        rows = ["\n".join(header_lines)]
+        for i, (dur_label, row) in enumerate(adjusted_df.iterrows()):
+            dur_min = dur_min_series.iloc[i]
+            vals = ",".join(str(v) for v in row.tolist())
+            rows.append(f"{dur_label},{dur_min},{vals}")
+        bom_csv = "\n".join(rows)
 
     return {
         "delta_t": delta_t,
@@ -197,5 +211,5 @@ def run(
         "dur_hrs": dur_hrs,
         "aep_cols": aep_cols,
         "index_col": df.index.name or "Duration",
-        "loss": loss_result,
+        "bom_csv": bom_csv,
     }

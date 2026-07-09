@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -69,7 +69,7 @@ export default function ChatBot() {
   return (
     <div
       className="flex flex-col rounded-xl overflow-hidden shadow-sm"
-      style={{ border: "1px solid #BDCDD6", height: "420px", backgroundColor: "white" }}
+      style={{ border: "1px solid #8CB6D0", height: "420px", backgroundColor: "white" }}
     >
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -83,7 +83,7 @@ export default function ChatBot() {
               <div
                 className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
                 style={{
-                  backgroundColor: isUser ? "#6096B4" : "#f0f4f7",
+                  backgroundColor: isUser ? "#1A72B5" : "#f0f4f7",
                   color: isUser ? "white" : "#1e2a35",
                   borderBottomRightRadius: isUser ? "4px" : undefined,
                   borderBottomLeftRadius: !isUser ? "4px" : undefined,
@@ -94,7 +94,7 @@ export default function ChatBot() {
                   <Link
                     href={toolPath}
                     className="mt-2 flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 w-fit transition-colors"
-                    style={{ backgroundColor: "#6096B4", color: "white" }}
+                    style={{ backgroundColor: "#1A72B5", color: "white" }}
                   >
                     Open {toolName} →
                   </Link>
@@ -107,7 +107,7 @@ export default function ChatBot() {
           <div className="flex justify-start">
             <div
               className="rounded-2xl px-4 py-2.5 text-sm"
-              style={{ backgroundColor: "#f0f4f7", color: "#6096B4", borderBottomLeftRadius: "4px" }}
+              style={{ backgroundColor: "#f0f4f7", color: "#1A72B5", borderBottomLeftRadius: "4px" }}
             >
               Thinking…
             </div>
@@ -117,7 +117,7 @@ export default function ChatBot() {
       </div>
 
       {/* Input */}
-      <div className="p-3 flex gap-2" style={{ borderTop: "1px solid #BDCDD6" }}>
+      <div className="p-3 flex gap-2" style={{ borderTop: "1px solid #8CB6D0" }}>
         <input
           type="text"
           value={input}
@@ -125,15 +125,15 @@ export default function ChatBot() {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Describe what you want to do…"
           className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-          style={{ border: "1px solid #BDCDD6", color: "#1e2a35" }}
+          style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
         />
         <button
           onClick={send}
           disabled={loading || !input.trim()}
           className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-colors flex-shrink-0"
-          style={{ backgroundColor: "#6096B4" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#4d7d99")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#6096B4")}
+          style={{ backgroundColor: "#1A72B5" }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#145D96")}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1A72B5")}
         >
           Send
         </button>

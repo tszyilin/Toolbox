@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -17,6 +17,18 @@ const tools = [
     category: "Hydrology",
     icon: "🌡",
   },
+  {
+    name: "Loss Parameter Adjustment",
+    href: "/tools/loss-climate-change",
+    category: "Hydrology",
+    icon: "💧",
+  },
+  {
+    name: "Interpolation / Extrapolation",
+    href: "/tools/interpolation",
+    category: "General",
+    icon: "📈",
+  },
 ];
 
 export default function Sidebar() {
@@ -28,8 +40,8 @@ export default function Sidebar() {
       className="flex-shrink-0 h-screen sticky top-0 flex flex-col transition-all duration-300 overflow-hidden"
       style={{
         width: expanded ? "220px" : "52px",
-        background: "linear-gradient(180deg, #6096B4 0%, #7aaec4 55%, #93BFCF 100%)",
-        borderRight: "1px solid #4d7d99",
+        background: "linear-gradient(180deg, #1A72B5 0%, #7aaec4 55%, #4AADC4 100%)",
+        borderRight: "1px solid #145D96",
       }}
     >
       {/* Header */}
