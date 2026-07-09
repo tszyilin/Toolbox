@@ -6,7 +6,8 @@ app = FastAPI(title="Toolbox API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # add Railway frontend URL here later
+    allow_origins=["http://localhost:3000"],
+    allow_origin_regex=r"https://.*\.up\.railway\.app",
     allow_methods=["*"],
     allow_headers=["*"],
 )
