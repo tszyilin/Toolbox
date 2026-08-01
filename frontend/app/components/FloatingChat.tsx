@@ -72,19 +72,22 @@ export default function FloatingChat() {
           style={{
             width: "340px",
             height: "460px",
-            backgroundColor: "white",
-            border: "1px solid #8CB6D0",
+            backgroundColor: "var(--color-panel)",
+            border: "1px solid var(--color-border)",
           }}
         >
           {/* Header */}
           <div
             className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-            style={{ backgroundColor: "#1A72B5" }}
+            style={{ backgroundColor: "var(--color-elevated)" }}
           >
-            <span className="text-sm font-semibold text-white">Toolbox Assistant</span>
+            <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Toolbox Assistant</span>
             <button
               onClick={() => setOpen(false)}
-              className="text-white/70 hover:text-white text-lg leading-none"
+              className="text-lg leading-none transition-colors"
+              style={{ color: "var(--color-text-secondary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-secondary)")}
             >
               ✕
             </button>
@@ -101,8 +104,8 @@ export default function FloatingChat() {
                   <div
                     className="max-w-[85%] rounded-2xl px-3 py-2 text-xs leading-relaxed"
                     style={{
-                      backgroundColor: isUser ? "#1A72B5" : "#f0f4f7",
-                      color: isUser ? "white" : "#1e2a35",
+                      backgroundColor: isUser ? "var(--color-accent)" : "var(--color-elevated)",
+                      color: isUser ? "var(--color-accent-text)" : "var(--color-text-primary)",
                       borderBottomRightRadius: isUser ? "4px" : undefined,
                       borderBottomLeftRadius: !isUser ? "4px" : undefined,
                     }}
@@ -112,8 +115,7 @@ export default function FloatingChat() {
                       <Link
                         href={toolPath}
                         onClick={() => setOpen(false)}
-                        className="mt-2 flex items-center gap-1 text-xs font-semibold rounded-lg px-2.5 py-1.5 w-fit"
-                        style={{ backgroundColor: "#1A72B5", color: "white" }}
+                        className="mt-2 flex items-center gap-1 text-xs font-semibold rounded-lg px-2.5 py-1.5 w-fit tb-btn-primary"
                       >
                         Open {toolName} →
                       </Link>
@@ -124,7 +126,7 @@ export default function FloatingChat() {
             })}
             {loading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl px-3 py-2 text-xs" style={{ backgroundColor: "#f0f4f7", color: "#1A72B5" }}>
+                <div className="rounded-2xl px-3 py-2 text-xs" style={{ backgroundColor: "var(--color-elevated)", color: "var(--color-text-secondary)" }}>
                   Thinking…
                 </div>
               </div>
@@ -133,21 +135,19 @@ export default function FloatingChat() {
           </div>
 
           {/* Input */}
-          <div className="p-2.5 flex gap-2 flex-shrink-0" style={{ borderTop: "1px solid #8CB6D0" }}>
+          <div className="p-2.5 flex gap-2 flex-shrink-0" style={{ borderTop: "1px solid var(--color-border)" }}>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && send()}
               placeholder="Ask something…"
-              className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none"
-              style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+              className="flex-1 rounded-lg px-3 py-1.5 text-xs outline-none tb-input"
             />
             <button
               onClick={send}
               disabled={loading || !input.trim()}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white disabled:opacity-40 flex-shrink-0"
-              style={{ backgroundColor: "#1A72B5" }}
+              className="px-3 py-1.5 rounded-lg text-xs disabled:opacity-40 flex-shrink-0 tb-btn-primary"
             >
               Send
             </button>
@@ -159,16 +159,16 @@ export default function FloatingChat() {
       <button
         onClick={() => setOpen(!open)}
         className="w-12 h-12 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105"
-        style={{ backgroundColor: "#1A72B5" }}
+        style={{ backgroundColor: "var(--color-accent)" }}
         title="Open assistant"
       >
         {open ? (
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M4 4L14 14M14 4L4 14" stroke="white" strokeWidth="2" strokeLinecap="round" />
+            <path d="M4 4L14 14M14 4L4 14" stroke="var(--color-accent-text)" strokeWidth="2" strokeLinecap="round" />
           </svg>
         ) : (
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v9a1 1 0 01-1 1H6l-4 3V4z" fill="white" />
+            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v9a1 1 0 01-1 1H6l-4 3V4z" fill="var(--color-accent-text)" />
           </svg>
         )}
       </button>

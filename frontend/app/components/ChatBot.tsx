@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -21,13 +21,23 @@ function extractToolLink(text: string): string | null {
   return match ? match[0] : null;
 }
 
+function SendButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40 transition-colors flex-shrink-0 tb-btn-primary"
+      title="Send"
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <path d="M7 11V3M3.5 6.5L7 3l3.5 3.5" stroke="var(--color-accent-text)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
 export default function ChatBot() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hi! Tell me what you're working on today and I'll point you to the right tool.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -68,10 +78,35 @@ export default function ChatBot() {
     }
   }
 
+  const started = messages.length > 0;
+
+  if (!started) {
+    return (
+      <div className="flex flex-col items-center pt-10 pb-6">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="mb-4">
+          <path d="M16 4c-1 4-4 7-8 8 4 1 7 4 8 8 1-4 4-7 8-8-4-1-7-4-8-8z" fill="var(--color-accent)" />
+        </svg>
+        <h2 className="text-2xl tb-h1 mb-6">Where do we start?</h2>
+        <div className="w-full flex items-center gap-2 rounded-full px-2 py-2 pl-5" style={{ backgroundColor: "var(--color-panel)", border: "1px solid var(--color-border)" }}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && send()}
+            placeholder="Describe what you want to do…"
+            className="flex-1 min-w-0 bg-transparent text-sm outline-none"
+            style={{ color: "var(--color-text-primary)" }}
+          />
+          <SendButton disabled={loading || !input.trim()} onClick={send} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
-      className="flex flex-col rounded-xl overflow-hidden shadow-sm"
-      style={{ border: "1px solid #8CB6D0", height: "420px", backgroundColor: "white" }}
+      className="flex flex-col overflow-hidden tb-card"
+      style={{ height: "420px" }}
     >
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -85,8 +120,8 @@ export default function ChatBot() {
               <div
                 className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed"
                 style={{
-                  backgroundColor: isUser ? "#1A72B5" : "#f0f4f7",
-                  color: isUser ? "white" : "#1e2a35",
+                  backgroundColor: isUser ? "var(--color-accent)" : "var(--color-elevated)",
+                  color: isUser ? "var(--color-accent-text)" : "var(--color-text-primary)",
                   borderBottomRightRadius: isUser ? "4px" : undefined,
                   borderBottomLeftRadius: !isUser ? "4px" : undefined,
                 }}
@@ -95,8 +130,7 @@ export default function ChatBot() {
                 {toolName && toolPath && (
                   <Link
                     href={toolPath}
-                    className="mt-2 flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 w-fit transition-colors"
-                    style={{ backgroundColor: "#1A72B5", color: "white" }}
+                    className="mt-2 flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 w-fit transition-colors tb-btn-primary"
                   >
                     Open {toolName} →
                   </Link>
@@ -109,7 +143,7 @@ export default function ChatBot() {
           <div className="flex justify-start">
             <div
               className="rounded-2xl px-4 py-2.5 text-sm"
-              style={{ backgroundColor: "#f0f4f7", color: "#1A72B5", borderBottomLeftRadius: "4px" }}
+              style={{ backgroundColor: "var(--color-elevated)", color: "var(--color-text-secondary)", borderBottomLeftRadius: "4px" }}
             >
               Thinking…
             </div>
@@ -119,26 +153,17 @@ export default function ChatBot() {
       </div>
 
       {/* Input */}
-      <div className="p-3 flex gap-2" style={{ borderTop: "1px solid #8CB6D0" }}>
+      <div className="p-3 flex items-center gap-2 rounded-full mx-3 mb-3" style={{ backgroundColor: "var(--color-panel)", border: "1px solid var(--color-border)" }}>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Describe what you want to do…"
-          className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
-          style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+          className="flex-1 min-w-0 bg-transparent px-2 text-sm outline-none"
+          style={{ color: "var(--color-text-primary)" }}
         />
-        <button
-          onClick={send}
-          disabled={loading || !input.trim()}
-          className="px-4 py-2 rounded-lg text-sm font-semibold text-white disabled:opacity-40 transition-colors flex-shrink-0"
-          style={{ backgroundColor: "#1A72B5" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#145D96")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1A72B5")}
-        >
-          Send
-        </button>
+        <SendButton disabled={loading || !input.trim()} onClick={send} />
       </div>
     </div>
   );

@@ -102,37 +102,35 @@ export default function EqualAreaSlopePage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "#8CB6D0" }}>
-      {/* Blue header band */}
-      <div className="px-6 py-8" style={{ backgroundColor: "#1A72B5" }}>
+    <main className="min-h-screen tb-bg">
+      {/* Header */}
+      <div className="px-6 py-8">
         <div className="max-w-4xl mx-auto">
-          <Link href="/" className="text-sm hover:underline" style={{ color: "#E4D9B6" }}>
+          <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>
             ← Back to Toolbox
           </Link>
-          <h1 className="mt-3 text-3xl font-bold text-white">Equal Area Slope</h1>
-          <p className="mt-1 text-sm" style={{ color: "#E4D9B6" }}>
+          <h1 className="mt-3 text-3xl tb-h1">Equal Area Slope</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
             Upload a CSV with survey data. Distance in metres, elevation in metres. Output in m/km.
           </p>
         </div>
       </div>
-      {/* Content on #8CB6D0 */}
       <div className="max-w-4xl mx-auto px-6 py-8">
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-xl shadow-sm p-8 space-y-6"
-          style={{ border: "1px solid #8CB6D0" }}
+          className="p-8 space-y-6 tb-card"
         >
           {/* Mode tabs */}
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
-            <div className="flex" style={{ borderBottom: "1px solid #8CB6D0", backgroundColor: "#EDF4F9" }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+            <div className="flex" style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-panel)" }}>
               {(["upload", "paste"] as const).map((m) => (
                 <button
                   key={m} type="button" onClick={() => setMode(m)}
                   className="px-4 py-2.5 text-xs font-semibold transition-colors"
                   style={{
-                    backgroundColor: mode === m ? "white" : "transparent",
-                    color: mode === m ? "#1A72B5" : "#1e2a35",
-                    borderBottom: mode === m ? "2px solid #1A72B5" : "2px solid transparent",
+                    backgroundColor: mode === m ? "var(--color-elevated)" : "transparent",
+                    color: mode === m ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    borderBottom: mode === m ? "2px solid var(--color-accent)" : "2px solid transparent",
                   }}
                 >
                   {m === "upload" ? "Upload CSV" : "Paste Data"}
@@ -140,58 +138,53 @@ export default function EqualAreaSlopePage() {
               ))}
             </div>
 
-            <div className="p-5" style={{ backgroundColor: mode === "upload" ? "#EDF4F9" : "white" }}>
+            <div className="p-5" style={{ backgroundColor: "var(--color-panel)" }}>
               {mode === "upload" ? (
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#8CB6D0" }}>
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--color-elevated)" }}>
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M4 4h8l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#1A72B5" strokeWidth="1.5" fill="none"/>
-                      <path d="M12 4v4h4M10 9v6M7 12l3-3 3 3" stroke="#1A72B5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4 4h8l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="var(--color-text-secondary)" strokeWidth="1.5" fill="none"/>
+                      <path d="M12 4v4h4M10 9v6M7 12l3-3 3 3" stroke="var(--color-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold mb-0.5" style={{ color: "#1e2a35" }}>Upload Survey CSV</p>
-                    <p className="text-xs mb-3" style={{ color: "#1A72B5" }}>
+                    <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--color-text-primary)" }}>Upload Survey CSV</p>
+                    <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
                       CSV with columns for line ID, elevation (m), and distance (m). One row per survey point.
                     </p>
                     <label
-                      className="inline-flex items-center gap-2 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-                      style={{ backgroundColor: "#1A72B5" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#145D96")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1A72B5")}
+                      className="inline-flex items-center gap-2 cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors tb-btn-primary"
                     >
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="var(--color-accent-text)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       {file ? file.name : "Choose CSV file"}
                       <input type="file" accept=".csv" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                     </label>
-                    {file && <p className="mt-2 text-xs" style={{ color: "#1A72B5" }}>✓ {file.name}</p>}
+                    {file && <p className="mt-2 text-xs" style={{ color: "var(--color-accent)" }}>✓ {file.name}</p>}
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>Line ID</label>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>Line ID</label>
                     <input
                       type="text" value={pastedLineId} onChange={(e) => setPastedLineId(e.target.value)}
                       placeholder="e.g. Line 1"
-                      className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
-                      style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+                      className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none tb-input"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>
-                      Paste distance / elevation data <span style={{ color: "#1A72B5" }}>(tab or space separated, one point per line)</span>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
+                      Paste distance / elevation data <span style={{ color: "var(--color-text-secondary)" }}>(tab or space separated, one point per line)</span>
                     </label>
                     <textarea
                       value={pastedData} onChange={(e) => setPastedData(e.target.value)}
                       rows={8} placeholder={"0.0\t370.54\n35.63\t369.15\n71.26\t371.23\n…"}
-                      className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y"
-                      style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+                      className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y tb-input"
                     />
                     {pastedData.trim() && (
-                      <p className="mt-1 text-xs" style={{ color: "#1A72B5" }}>
+                      <p className="mt-1 text-xs" style={{ color: "var(--color-accent)" }}>
                         ✓ {pastedData.trim().split("\n").filter(Boolean).length} points detected
                       </p>
                     )}
@@ -208,15 +201,15 @@ export default function EqualAreaSlopePage() {
               { label: "Distance Column", value: distCol, setter: setDistCol, placeholder: "e.g. distance" },
             ].map(({ label, value, setter, placeholder }) => (
               <div key={label}>
-                <label className="block text-sm font-medium mb-1" style={{ color: "#1e2a35" }}>{label}</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: "var(--color-text-primary)" }}>{label}</label>
                 <input
                   type="text"
                   value={value}
                   onChange={(e) => setter(e.target.value)}
                   placeholder={placeholder}
                   required
-                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  style={{ border: "1px solid #8CB6D0", "--tw-ring-color": "#1A72B5" } as React.CSSProperties}
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 tb-input"
+                  style={{ "--tw-ring-color": "var(--color-accent)" } as React.CSSProperties}
                 />
               </div>
             ))}
@@ -225,57 +218,54 @@ export default function EqualAreaSlopePage() {
           <button
             type="submit"
             disabled={loading || (mode === "upload" && !file) || (mode === "paste" && !pastedData.trim())}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            style={{ backgroundColor: "#1A72B5" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#145D96")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#1A72B5")}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors tb-btn-primary"
           >
             {loading ? "Calculating…" : "Calculate"}
           </button>
         </form>
 
         {error && (
-          <div className="mt-6 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-lg px-4 py-3 text-sm" style={{ background: "#2a1414", border: "1px solid #5c2323", color: "#f2a8a8" }}>
             {error}
           </div>
         )}
 
         {results.length > 0 && (
-          <div className="mt-8 rounded-xl overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
+          <div className="mt-8 rounded-xl overflow-hidden tb-card">
             {/* Header bar */}
-            <div className="flex items-center justify-between px-5 py-3" style={{ backgroundColor: "#1A72B5" }}>
-              <span className="text-sm font-semibold text-white">📐 Results</span>
+            <div className="flex items-center justify-between px-5 py-3" style={{ backgroundColor: "var(--color-panel)" }}>
+              <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>📐 Results</span>
               <button
                 onClick={downloadCSV}
                 className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                style={{ backgroundColor: "white", color: "#1A72B5" }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#E4D9B6")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                style={{ backgroundColor: "transparent", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
                 Download CSV
               </button>
             </div>
             {/* Table */}
-            <div className="overflow-x-auto" style={{ backgroundColor: "white" }}>
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead style={{ backgroundColor: "#8CB6D0" }}>
+                <thead style={{ backgroundColor: "var(--color-elevated)" }}>
                   <tr>
                     {[idColKey, "EAS [m/km]", "Length [km]", "Outlet Elevation [m RL]", "Hydraulic Slope [m/m]"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>{h}</th>
+                      <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: "#E4D9B6" }}>
+                <tbody className="divide-y" style={{ borderColor: "var(--color-border)" }}>
                   {results.map((row, i) => (
                     <tr key={i}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#f7f5f0")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
                     >
-                      <td className="px-4 py-2.5 font-medium" style={{ color: "#1e2a35" }}>{String(row[idColKey])}</td>
-                      <td className="px-4 py-2.5" style={{ color: "#1e2a35" }}>{Number(row.eas_m_per_km).toFixed(4)}</td>
-                      <td className="px-4 py-2.5" style={{ color: "#1e2a35" }}>{Number(row.length_km).toFixed(4)}</td>
-                      <td className="px-4 py-2.5" style={{ color: "#1e2a35" }}>{Number(row.outlet_elevation_m).toFixed(4)}</td>
-                      <td className="px-4 py-2.5" style={{ color: "#1e2a35" }}>{Number(row.hydraulic_slope).toFixed(6)}</td>
+                      <td className="px-4 py-2.5 font-medium" style={{ color: "var(--color-text-primary)" }}>{String(row[idColKey])}</td>
+                      <td className="px-4 py-2.5" style={{ color: "var(--color-text-primary)" }}>{Number(row.eas_m_per_km).toFixed(4)}</td>
+                      <td className="px-4 py-2.5" style={{ color: "var(--color-text-primary)" }}>{Number(row.length_km).toFixed(4)}</td>
+                      <td className="px-4 py-2.5" style={{ color: "var(--color-text-primary)" }}>{Number(row.outlet_elevation_m).toFixed(4)}</td>
+                      <td className="px-4 py-2.5" style={{ color: "var(--color-text-primary)" }}>{Number(row.hydraulic_slope).toFixed(6)}</td>
                     </tr>
                   ))}
                 </tbody>

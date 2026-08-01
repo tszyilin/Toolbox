@@ -1,28 +1,144 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 
 :root {
-  --background: #E4D9B6;
-  --foreground: #1e2a35;
+  --font-heading: var(--font-geist-sans);
+  --font-body: var(--font-inter);
 
-  --brand-primary: #1A72B5;
-  --brand-mid: #4AADC4;
-  --brand-light: #8CB6D0;
-  --brand-cream: #E4D9B6;
+  --color-bg: #111111;
+  --color-panel: #1a1a1a;
+  --color-elevated: #2f2f2f;
+  --color-accent: #c9e1c0;
+  --color-accent-text: #16241a;
+
+  --color-text-primary: #f2f2f2;
+  --color-text-secondary: #8a8a8a;
+  --color-text-muted: #666666;
+  --color-border: rgba(255, 255, 255, 0.07);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --background: var(--color-bg);
+  --foreground: var(--color-text-primary);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand-primary: var(--brand-primary);
-  --color-brand-mid: var(--brand-mid);
-  --color-brand-light: var(--brand-light);
-  --color-brand-cream: var(--brand-cream);
-  --font-sans: var(--font-geist-sans);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text-primary);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+}
+
+/* Page shell */
+.tb-bg {
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+/* Sidebar / panel surface */
+.tb-panel {
+  background: var(--color-panel);
+  border-right: 1px solid var(--color-border);
+}
+
+/* Nav row states */
+.tb-nav-item {
+  border-radius: 7px;
+  padding: 9px 10px;
+  color: #d8d8d8;
+}
+.tb-nav-item:hover {
+  background: var(--color-elevated);
+}
+.tb-nav-item--active {
+  background: var(--color-elevated);
+  color: #fafafa;
+  font-weight: 600;
+}
+
+/* Big heading */
+.tb-h1 {
+  font-family: var(--font-heading);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  color: #fafafa;
+}
+
+/* Card */
+.tb-card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.tb-card:hover {
+  background: #202020;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Primary button (the one solid-fill element) */
+.tb-btn-primary {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.tb-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* Chip / filter */
+.tb-chip {
+  background: var(--color-panel);
+  color: #a8a8a8;
+  border-radius: var(--radius-sm);
+}
+.tb-chip--active {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 600;
+}
+
+/* Hoverable list row */
+.tb-row-hover:hover {
+  background: var(--color-elevated);
+}
+
+/* Tag */
+.tb-tag {
+  background: var(--color-elevated);
+  color: #a8c9a0;
+  border-radius: 5px;
+}
+
+/* Input */
+.tb-input {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: #e8e8e8;
+  font-family: var(--font-body);
+}
+.tb-input::placeholder {
+  color: #7a7a7a;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #111111;
 }

@@ -24,14 +24,14 @@ const REF_TABS = [
 ];
 
 const INPUT_STYLE = {
-  border: "1px solid #8CB6D0",
+  border: "1px solid var(--color-border)",
   borderRadius: "0.5rem",
   padding: "0.5rem 0.75rem",
   fontSize: "0.875rem",
   width: "100%",
   outline: "none",
-  backgroundColor: "white",
-  color: "#1e2a35",
+  backgroundColor: "var(--color-panel)",
+  color: "var(--color-text-primary)",
 };
 
 const LABEL_STYLE = {
@@ -39,7 +39,7 @@ const LABEL_STYLE = {
   fontSize: "0.875rem",
   fontWeight: 500,
   marginBottom: "0.25rem",
-  color: "#1e2a35",
+  color: "var(--color-text-primary)",
 } as React.CSSProperties;
 
 interface Options {
@@ -66,11 +66,11 @@ function ReferenceSection() {
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState("nrm");
   return (
-    <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
+    <div className="mt-4 rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3 text-sm font-semibold transition-colors"
-        style={{ backgroundColor: open ? "#1A72B5" : "#8CB6D0", color: open ? "white" : "#1e2a35" }}
+        className={`w-full flex items-center justify-between px-5 py-3 text-sm font-semibold transition-colors ${open ? "tb-btn-primary" : ""}`}
+        style={!open ? { backgroundColor: "var(--color-panel)", color: "var(--color-text-primary)" } : undefined}
       >
         <span>📋 Reference Tables (ARR Book 1 Ch. 6)</span>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
@@ -78,22 +78,22 @@ function ReferenceSection() {
         </svg>
       </button>
       {open && (
-        <div style={{ backgroundColor: "#EDF4F9" }}>
-          <div className="flex" style={{ borderBottom: "1px solid #8CB6D0" }}>
+        <div style={{ backgroundColor: "var(--color-panel)" }}>
+          <div className="flex" style={{ borderBottom: "1px solid var(--color-border)" }}>
             {REF_TABS.map((t) => (
               <button key={t.key} onClick={() => setTab(t.key)}
                 className="px-4 py-2.5 text-xs font-semibold transition-colors"
-                style={{ backgroundColor: tab === t.key ? "white" : "transparent", color: tab === t.key ? "#1A72B5" : "#1e2a35", borderBottom: tab === t.key ? "2px solid #1A72B5" : "2px solid transparent" }}>
+                style={{ backgroundColor: tab === t.key ? "var(--color-elevated)" : "transparent", color: tab === t.key ? "var(--color-text-primary)" : "var(--color-text-secondary)", borderBottom: tab === t.key ? "2px solid var(--color-accent)" : "2px solid transparent" }}>
                 {t.label}
               </button>
             ))}
           </div>
           {REF_TABS.filter((t) => t.key === tab).map((t) => (
             <div key={t.key} className="p-4">
-              <div className="relative w-full rounded-lg overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
+              <div className="relative w-full rounded-lg overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
                 <Image src={t.src} alt={t.label} width={1200} height={600} className="w-full h-auto object-contain" style={{ backgroundColor: "white" }} />
               </div>
-              <p className="mt-2 text-xs text-center" style={{ color: "#1A72B5" }}>{t.caption}</p>
+              <p className="mt-2 text-xs text-center" style={{ color: "var(--color-text-secondary)" }}>{t.caption}</p>
             </div>
           ))}
         </div>
@@ -153,19 +153,19 @@ export default function LossClimateChangePage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "#8CB6D0" }}>
-      <div className="px-6 py-8" style={{ backgroundColor: "#1A72B5" }}>
+    <main className="min-h-screen tb-bg">
+      <div className="px-6 py-8">
         <div className="max-w-3xl mx-auto">
-          <Link href="/" className="text-sm hover:underline" style={{ color: "#E4D9B6" }}>← Back to Toolbox</Link>
-          <h1 className="mt-3 text-3xl font-bold text-white">Loss Parameter Adjustment</h1>
-          <p className="mt-1 text-sm" style={{ color: "#E4D9B6" }}>
+          <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>← Back to Toolbox</Link>
+          <h1 className="mt-3 text-3xl tb-h1">Loss Parameter Adjustment</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
             Adjust Initial Loss (IL) and Continuing Loss (CL) for climate change per ARR Book 1 Ch. 6.
           </p>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-8">
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-8 space-y-6" style={{ border: "1px solid #8CB6D0" }}>
+        <form onSubmit={handleSubmit} className="p-8 space-y-6 tb-card">
 
           {/* Climate scenario */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -199,7 +199,7 @@ export default function LossClimateChangePage() {
               {options?.nrm_clusters?.map((c) => <option key={c}>{c}</option>)}
             </select>
             {nrmCluster && NRM_RATES[nrmCluster] && (
-              <div className="mt-2 flex gap-4 text-xs" style={{ color: "#1A72B5" }}>
+              <div className="mt-2 flex gap-4 text-xs" style={{ color: "var(--color-accent)" }}>
                 <span>IL rate: <strong>{NRM_RATES[nrmCluster].il} %/°C</strong></span>
                 <span>CL rate: <strong>{NRM_RATES[nrmCluster].cl} %/°C</strong></span>
               </div>
@@ -233,23 +233,25 @@ export default function LossClimateChangePage() {
           <button
             type="submit"
             disabled={loading || !nrmCluster || !ssp || !timePeriod}
-            className="px-6 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors disabled:cursor-not-allowed"
-            style={{ backgroundColor: (loading || !nrmCluster || !ssp || !timePeriod) ? "#8CB6D0" : "#1A72B5" }}
-            onMouseEnter={(e) => { if (nrmCluster && ssp && timePeriod && !loading) e.currentTarget.style.backgroundColor = "#145D96"; }}
-            onMouseLeave={(e) => { if (nrmCluster && ssp && timePeriod && !loading) e.currentTarget.style.backgroundColor = "#1A72B5"; }}
+            className="px-6 py-2.5 rounded-lg text-sm transition-colors disabled:cursor-not-allowed tb-btn-primary"
+            style={
+              (loading || !nrmCluster || !ssp || !timePeriod)
+                ? { backgroundColor: "var(--color-elevated)", color: "var(--color-text-muted)" }
+                : undefined
+            }
           >
             {loading ? "Calculating…" : "Apply Climate Change Adjustment"}
           </button>
         </form>
 
         {error && (
-          <div className="mt-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="mt-4 rounded-lg px-4 py-3 text-sm" style={{ background: "#2a1414", border: "1px solid #5c2323", color: "#f2a8a8" }}>{error}</div>
         )}
 
         {result && (
-          <div className="mt-6 bg-white rounded-xl shadow-sm p-6 space-y-4" style={{ border: "1px solid #8CB6D0" }}>
+          <div className="mt-6 rounded-xl shadow-sm p-6 space-y-4 tb-card">
             {/* Summary */}
-            <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: "#8CB6D0", color: "#1e2a35" }}>
+            <div className="rounded-lg px-4 py-3 text-sm" style={{ backgroundColor: "var(--color-elevated)", color: "var(--color-text-primary)" }}>
               <strong>{result.ssp}</strong> · {result.time_period} · {result.delta_t_choice} ΔT = <strong>{result.delta_t}°C</strong>
               <span className="ml-3 opacity-70">· {result.nrm_cluster}</span>
             </div>
@@ -258,34 +260,34 @@ export default function LossClimateChangePage() {
             <div className="grid grid-cols-2 gap-4">
               {result.initial_loss_original !== undefined && (
                 <>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: "#EDF4F9", border: "1px solid #8CB6D0" }}>
-                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4AADC4" }}>Original IL</p>
-                    <p className="text-2xl font-bold" style={{ color: "#1e2a35" }}>{result.initial_loss_original} <span className="text-sm font-normal">mm</span></p>
-                    <p className="text-xs mt-1" style={{ color: "#4AADC4" }}>α = {result.il_rate} %/°C</p>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: "var(--color-panel)", border: "1px solid var(--color-border)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-secondary)" }}>Original IL</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{result.initial_loss_original} <span className="text-sm font-normal">mm</span></p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>α = {result.il_rate} %/°C</p>
                   </div>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: "#1A72B5" }}>
-                    <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-white/70">Adjusted IL</p>
-                    <p className="text-2xl font-bold text-white">{result.initial_loss_adjusted} <span className="text-sm font-normal">mm</span></p>
-                    <p className="text-xs mt-1 text-white/70">+{((result.initial_loss_adjusted! / result.initial_loss_original - 1) * 100).toFixed(1)}% increase</p>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: "var(--color-accent)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-accent-text)", opacity: 0.7 }}>Adjusted IL</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--color-accent-text)" }}>{result.initial_loss_adjusted} <span className="text-sm font-normal">mm</span></p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-accent-text)", opacity: 0.7 }}>+{((result.initial_loss_adjusted! / result.initial_loss_original - 1) * 100).toFixed(1)}% increase</p>
                   </div>
                 </>
               )}
               {result.continuing_loss_original !== undefined && (
                 <>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: "#EDF4F9", border: "1px solid #8CB6D0" }}>
-                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "#4AADC4" }}>Original CL</p>
-                    <p className="text-2xl font-bold" style={{ color: "#1e2a35" }}>{result.continuing_loss_original} <span className="text-sm font-normal">mm/hr</span></p>
-                    <p className="text-xs mt-1" style={{ color: "#4AADC4" }}>α = {result.cl_rate} %/°C</p>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: "var(--color-panel)", border: "1px solid var(--color-border)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-text-secondary)" }}>Original CL</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{result.continuing_loss_original} <span className="text-sm font-normal">mm/hr</span></p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>α = {result.cl_rate} %/°C</p>
                   </div>
-                  <div className="rounded-lg p-4" style={{ backgroundColor: "#1A72B5" }}>
-                    <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-white/70">Adjusted CL</p>
-                    <p className="text-2xl font-bold text-white">{result.continuing_loss_adjusted} <span className="text-sm font-normal">mm/hr</span></p>
-                    <p className="text-xs mt-1 text-white/70">+{((result.continuing_loss_adjusted! / result.continuing_loss_original - 1) * 100).toFixed(1)}% increase</p>
+                  <div className="rounded-lg p-4" style={{ backgroundColor: "var(--color-accent)" }}>
+                    <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-accent-text)", opacity: 0.7 }}>Adjusted CL</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--color-accent-text)" }}>{result.continuing_loss_adjusted} <span className="text-sm font-normal">mm/hr</span></p>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-accent-text)", opacity: 0.7 }}>+{((result.continuing_loss_adjusted! / result.continuing_loss_original - 1) * 100).toFixed(1)}% increase</p>
                   </div>
                 </>
               )}
               {result.initial_loss_original === undefined && result.continuing_loss_original === undefined && (
-                <div className="col-span-2 text-sm text-center py-4" style={{ color: "#1A72B5" }}>
+                <div className="col-span-2 text-sm text-center py-4" style={{ color: "var(--color-text-secondary)" }}>
                   Enter IL and/or CL values above to see adjusted results.
                 </div>
               )}

@@ -4,14 +4,14 @@ import { useState, useMemo, Fragment } from "react";
 import Link from "next/link";
 
 const INPUT_STYLE = {
-  border: "1px solid #8CB6D0",
+  border: "1px solid var(--color-border)",
   borderRadius: "0.5rem",
   padding: "0.5rem 0.75rem",
   fontSize: "0.875rem",
   width: "100%",
   outline: "none",
-  backgroundColor: "white",
-  color: "#1e2a35",
+  backgroundColor: "var(--color-panel)",
+  color: "var(--color-text-primary)",
 };
 
 interface Point { x: number; y: number }
@@ -107,12 +107,12 @@ export default function InterpolationPage() {
   }
 
   return (
-    <main className="min-h-screen" style={{ backgroundColor: "#8CB6D0" }}>
-      <div className="px-6 py-8" style={{ backgroundColor: "#1A72B5" }}>
+    <main className="min-h-screen tb-bg">
+      <div className="px-6 py-8">
         <div className="max-w-5xl mx-auto">
-          <Link href="/" className="text-sm hover:underline" style={{ color: "#E4D9B6" }}>← Back to Toolbox</Link>
-          <h1 className="mt-3 text-3xl font-bold text-white">Interpolation / Extrapolation</h1>
-          <p className="mt-1 text-sm" style={{ color: "#E4D9B6" }}>
+          <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>← Back to Toolbox</Link>
+          <h1 className="mt-3 text-3xl tb-h1">Interpolation / Extrapolation</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
             Paste or upload X,Y data then query any X value — interpolates between points or extrapolates beyond the range.
           </p>
         </div>
@@ -120,73 +120,69 @@ export default function InterpolationPage() {
 
       <div className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* Data input */}
-        <div className="bg-white rounded-xl shadow-sm p-6 space-y-4" style={{ border: "1px solid #8CB6D0" }}>
+        <div className="rounded-xl shadow-sm p-6 space-y-4 tb-card">
           <div className="flex items-center gap-3">
             <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>X axis label</label>
+              <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>X axis label</label>
               <input value={xLabel} onChange={e => setXLabel(e.target.value)} style={{ ...INPUT_STYLE, width: "120px" }} />
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>Y axis label</label>
+              <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>Y axis label</label>
               <input value={yLabel} onChange={e => setYLabel(e.target.value)} style={{ ...INPUT_STYLE, width: "120px" }} />
             </div>
           </div>
 
           {/* Mode tabs */}
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
-            <div className="flex" style={{ borderBottom: "1px solid #8CB6D0", backgroundColor: "#EDF4F9" }}>
+          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--color-border)" }}>
+            <div className="flex" style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-panel)" }}>
               {(["paste", "upload"] as const).map(m => (
                 <button key={m} type="button" onClick={() => setMode(m)}
                   className="px-4 py-2.5 text-xs font-semibold transition-colors"
                   style={{
-                    backgroundColor: mode === m ? "white" : "transparent",
-                    color: mode === m ? "#1A72B5" : "#1e2a35",
-                    borderBottom: mode === m ? "2px solid #1A72B5" : "2px solid transparent",
+                    backgroundColor: mode === m ? "var(--color-elevated)" : "transparent",
+                    color: mode === m ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    borderBottom: mode === m ? "2px solid var(--color-accent)" : "2px solid transparent",
                   }}>
                   {m === "paste" ? "Paste Data" : "Upload CSV"}
                 </button>
               ))}
             </div>
 
-            <div className="p-5" style={{ backgroundColor: mode === "paste" ? "white" : "#EDF4F9" }}>
+            <div className="p-5" style={{ backgroundColor: "var(--color-panel)" }}>
               {mode === "paste" ? (
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold" style={{ color: "#1e2a35" }}>
-                    Paste X, Y data — <span style={{ color: "#1A72B5" }}>tab, space, or comma separated · one point per line</span>
+                  <label className="block text-xs font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                    Paste X, Y data — <span style={{ color: "var(--color-text-secondary)" }}>tab, space, or comma separated · one point per line</span>
                   </label>
                   <textarea
                     value={pastedData} onChange={e => setPastedData(e.target.value)}
                     rows={8} placeholder={"0.0\t10.5\n1.0\t12.3\n2.5\t15.8\n…"}
-                    className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y"
-                    style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+                    className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y tb-input"
                   />
                   {data.length > 0 && (
-                    <p className="text-xs" style={{ color: "#1A72B5" }}>✓ {data.length} points · X range: {sorted[0].x} – {sorted[sorted.length-1].x}</p>
+                    <p className="text-xs" style={{ color: "var(--color-accent)" }}>✓ {data.length} points · X range: {sorted[0].x} – {sorted[sorted.length-1].x}</p>
                   )}
                 </div>
               ) : (
                 <div className="flex items-start gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#8CB6D0" }}>
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: "var(--color-elevated)" }}>
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M4 4h8l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="#1A72B5" strokeWidth="1.5" fill="none"/>
-                      <path d="M12 4v4h4M10 9v6M7 12l3-3 3 3" stroke="#1A72B5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4 4h8l4 4v8a1 1 0 01-1 1H4a1 1 0 01-1-1V5a1 1 0 011-1z" stroke="var(--color-text-secondary)" strokeWidth="1.5" fill="none"/>
+                      <path d="M12 4v4h4M10 9v6M7 12l3-3 3 3" stroke="var(--color-text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold mb-0.5" style={{ color: "#1e2a35" }}>Upload CSV</p>
-                    <p className="text-xs mb-3" style={{ color: "#1A72B5" }}>Two columns: X and Y. Header row optional.</p>
-                    <label className="inline-flex items-center gap-2 cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold text-white transition-colors"
-                      style={{ backgroundColor: "#1A72B5" }}
-                      onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#145D96")}
-                      onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#1A72B5")}>
+                    <p className="text-sm font-semibold mb-0.5" style={{ color: "var(--color-text-primary)" }}>Upload CSV</p>
+                    <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>Two columns: X and Y. Header row optional.</p>
+                    <label className="inline-flex items-center gap-2 cursor-pointer rounded-lg px-4 py-2 text-sm transition-colors tb-btn-primary">
                       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M7 1v8M4 4l3-3 3 3M2 11h10" stroke="var(--color-accent-text)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                       {file ? file.name : "Choose CSV file"}
                       <input type="file" accept=".csv,.txt" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFileChange(f); }} />
                     </label>
                     {data.length > 0 && (
-                      <p className="mt-2 text-xs" style={{ color: "#1A72B5" }}>✓ {data.length} points · X range: {sorted[0].x} – {sorted[sorted.length-1].x}</p>
+                      <p className="mt-2 text-xs" style={{ color: "var(--color-accent)" }}>✓ {data.length} points · X range: {sorted[0].x} – {sorted[sorted.length-1].x}</p>
                     )}
                   </div>
                 </div>
@@ -197,42 +193,42 @@ export default function InterpolationPage() {
 
         {/* Query panel — only show once data is loaded */}
         {data.length >= 2 && (
-          <div className="rounded-xl overflow-hidden" style={{ border: "1px solid #8CB6D0" }}>
+          <div className="rounded-xl overflow-hidden tb-card">
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3" style={{ backgroundColor: "#1A72B5" }}>
-              <span className="text-sm font-semibold text-white">🔍 Query</span>
+            <div className="flex items-center justify-between px-5 py-3" style={{ backgroundColor: "var(--color-panel)" }}>
+              <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>🔍 Query</span>
               {queryMode === "batch" && batchResults.length > 0 && (
                 <button onClick={downloadBatchCSV}
                   className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  style={{ backgroundColor: "white", color: "#1A72B5" }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#E4D9B6")}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#ffffff")}>
+                  style={{ backgroundColor: "transparent", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}>
                   Download CSV
                 </button>
               )}
             </div>
 
             {/* Sub-tabs: single / batch */}
-            <div className="flex" style={{ borderBottom: "1px solid #8CB6D0", backgroundColor: "#EDF4F9" }}>
+            <div className="flex" style={{ borderBottom: "1px solid var(--color-border)", backgroundColor: "var(--color-panel)" }}>
               {(["single", "batch"] as const).map(m => (
                 <button key={m} type="button" onClick={() => setQueryMode(m)}
                   className="px-4 py-2.5 text-xs font-semibold transition-colors capitalize"
                   style={{
-                    backgroundColor: queryMode === m ? "white" : "transparent",
-                    color: queryMode === m ? "#1A72B5" : "#1e2a35",
-                    borderBottom: queryMode === m ? "2px solid #1A72B5" : "2px solid transparent",
+                    backgroundColor: queryMode === m ? "var(--color-elevated)" : "transparent",
+                    color: queryMode === m ? "var(--color-text-primary)" : "var(--color-text-secondary)",
+                    borderBottom: queryMode === m ? "2px solid var(--color-accent)" : "2px solid transparent",
                   }}>
                   {m === "single" ? "Single value" : "Batch values"}
                 </button>
               ))}
             </div>
 
-            <div className="p-5 bg-white space-y-4">
+            <div className="p-5 space-y-4" style={{ backgroundColor: "var(--color-panel)" }}>
               {queryMode === "single" ? (
                 <>
                   <div className="flex items-end gap-4">
                     <div className="w-48">
-                      <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>Query {xLabel}</label>
+                      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>Query {xLabel}</label>
                       <input
                         type="number" step="any" value={queryInput}
                         onChange={e => setQueryInput(e.target.value)}
@@ -242,12 +238,15 @@ export default function InterpolationPage() {
                     </div>
                     {singleResult && (
                       <div className="flex-1 rounded-xl px-5 py-3 flex items-center justify-between"
-                        style={{ backgroundColor: singleResult.method === "interpolated" ? "#1A72B5" : "#145D96" }}>
+                        style={{
+                          backgroundColor: "var(--color-elevated)",
+                          border: singleResult.method === "interpolated" ? "1px solid var(--color-accent)" : "1px solid #7a6a3a",
+                        }}>
                         <div>
-                          <p className="text-xs text-white/70 font-semibold uppercase tracking-widest">{yLabel} ({singleResult.method})</p>
-                          <p className="text-2xl font-bold text-white mt-0.5">{singleResult.y.toFixed(6)}</p>
+                          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>{yLabel} ({singleResult.method})</p>
+                          <p className="text-2xl font-bold mt-0.5" style={{ color: singleResult.method === "interpolated" ? "var(--color-accent)" : "#F0D68A" }}>{singleResult.y.toFixed(6)}</p>
                         </div>
-                        <div className="text-right text-xs text-white/60">
+                        <div className="text-right text-xs" style={{ color: "var(--color-text-secondary)" }}>
                           <p>Between {xLabel} {singleResult.p0.x} → {singleResult.p1.x}</p>
                           <p>slope = {((singleResult.p1.y - singleResult.p0.y) / (singleResult.p1.x - singleResult.p0.x)).toFixed(6)}</p>
                         </div>
@@ -257,21 +256,21 @@ export default function InterpolationPage() {
 
                   {/* Data table with highlight */}
                   {sorted.length > 0 && (
-                    <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid #8CB6D0" }}>
+                    <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--color-border)" }}>
                       <table className="w-full text-sm">
-                        <thead style={{ backgroundColor: "#8CB6D0" }}>
+                        <thead style={{ backgroundColor: "var(--color-elevated)" }}>
                           <tr>
-                            <th className="px-4 py-3 text-left font-semibold" style={{ color: "#1e2a35" }}>{xLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold" style={{ color: "#1e2a35" }}>{yLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold" style={{ color: "var(--color-text-primary)" }}>{xLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold" style={{ color: "var(--color-text-primary)" }}>{yLabel}</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y" style={{ borderColor: "#E4D9B6" }}>
+                        <tbody className="divide-y" style={{ borderColor: "var(--color-border)" }}>
                           {singleResult && !isNaN(queryX) && (queryX < sorted[0].x) && (
-                            <tr style={{ backgroundColor: "#EDF4F9" }}>
-                              <td className="px-4 py-2 text-xs font-semibold" style={{ color: "#1A72B5" }}>
+                            <tr style={{ backgroundColor: "var(--color-elevated)" }}>
+                              <td className="px-4 py-2 text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
                                 ▶ {queryX} <span className="font-normal opacity-70">(extrapolated)</span>
                               </td>
-                              <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "#1A72B5" }}>{singleResult.y.toFixed(6)}</td>
+                              <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "var(--color-accent)" }}>{singleResult.y.toFixed(6)}</td>
                             </tr>
                           )}
                           {sorted.map((pt, i) => {
@@ -283,30 +282,30 @@ export default function InterpolationPage() {
                             return (
                               <Fragment key={i}>
                                 <tr
-                                  style={{ backgroundColor: (isLower || isUpper) ? "#EDF4F9" : undefined }}
-                                  onMouseEnter={e => { if (!isLower && !isUpper) e.currentTarget.style.backgroundColor = "#f7f5f0"; }}
-                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = (isLower || isUpper) ? "#EDF4F9" : "#ffffff"; }}
+                                  style={{ backgroundColor: (isLower || isUpper) ? "var(--color-elevated)" : undefined }}
+                                  onMouseEnter={e => { if (!isLower && !isUpper) e.currentTarget.style.backgroundColor = "var(--color-elevated)"; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = (isLower || isUpper) ? "var(--color-elevated)" : "transparent"; }}
                                 >
-                                  <td className="px-4 py-2.5 font-medium" style={{ color: (isLower || isUpper) ? "#1A72B5" : "#1e2a35" }}>{pt.x}</td>
-                                  <td className="px-4 py-2.5 text-right" style={{ color: (isLower || isUpper) ? "#1A72B5" : "#1e2a35" }}>{pt.y}</td>
+                                  <td className="px-4 py-2.5 font-medium" style={{ color: (isLower || isUpper) ? "var(--color-accent)" : "var(--color-text-primary)" }}>{pt.x}</td>
+                                  <td className="px-4 py-2.5 text-right" style={{ color: (isLower || isUpper) ? "var(--color-accent)" : "var(--color-text-primary)" }}>{pt.y}</td>
                                 </tr>
                                 {insertAfter && (
-                                  <tr style={{ backgroundColor: "#EDF4F9" }}>
-                                    <td className="px-4 py-2 text-xs font-semibold" style={{ color: "#1A72B5" }}>
+                                  <tr style={{ backgroundColor: "var(--color-elevated)" }}>
+                                    <td className="px-4 py-2 text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
                                       ▶ {queryX} <span className="font-normal opacity-70">(interpolated)</span>
                                     </td>
-                                    <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "#1A72B5" }}>{singleResult!.y.toFixed(6)}</td>
+                                    <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "var(--color-accent)" }}>{singleResult!.y.toFixed(6)}</td>
                                   </tr>
                                 )}
                               </Fragment>
                             );
                           })}
                           {singleResult && !isNaN(queryX) && queryX > sorted[sorted.length-1].x && (
-                            <tr style={{ backgroundColor: "#EDF4F9" }}>
-                              <td className="px-4 py-2 text-xs font-semibold" style={{ color: "#1A72B5" }}>
+                            <tr style={{ backgroundColor: "var(--color-elevated)" }}>
+                              <td className="px-4 py-2 text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
                                 ▶ {queryX} <span className="font-normal opacity-70">(extrapolated)</span>
                               </td>
-                              <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "#1A72B5" }}>{singleResult.y.toFixed(6)}</td>
+                              <td className="px-4 py-2 text-xs font-bold text-right" style={{ color: "var(--color-accent)" }}>{singleResult.y.toFixed(6)}</td>
                             </tr>
                           )}
                         </tbody>
@@ -318,43 +317,42 @@ export default function InterpolationPage() {
                 /* Batch mode */
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold mb-1" style={{ color: "#1e2a35" }}>
-                      Query {xLabel} values — <span style={{ color: "#1A72B5" }}>one per line</span>
+                    <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-primary)" }}>
+                      Query {xLabel} values — <span style={{ color: "var(--color-text-secondary)" }}>one per line</span>
                     </label>
                     <textarea
                       value={batchInput} onChange={e => setBatchInput(e.target.value)}
                       rows={6} placeholder={"1.5\n3.2\n7.8\n…"}
-                      className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y"
-                      style={{ border: "1px solid #8CB6D0", color: "#1e2a35" }}
+                      className="w-full rounded-lg px-3 py-2 text-xs font-mono focus:outline-none resize-y tb-input"
                     />
                   </div>
                   {batchResults.length > 0 && (
-                    <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid #8CB6D0" }}>
+                    <div className="overflow-x-auto rounded-xl" style={{ border: "1px solid var(--color-border)" }}>
                       <table className="w-full text-sm">
-                        <thead style={{ backgroundColor: "#8CB6D0" }}>
+                        <thead style={{ backgroundColor: "var(--color-elevated)" }}>
                           <tr>
-                            <th className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Query {xLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>{yLabel}</th>
-                            <th className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Method</th>
-                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Lower {xLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Lower {yLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Upper {xLabel}</th>
-                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "#1e2a35" }}>Upper {yLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Query {xLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>{yLabel}</th>
+                            <th className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Method</th>
+                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Lower {xLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Lower {yLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Upper {xLabel}</th>
+                            <th className="px-4 py-3 text-right font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>Upper {yLabel}</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y" style={{ borderColor: "#E4D9B6" }}>
+                        <tbody className="divide-y" style={{ borderColor: "var(--color-border)" }}>
                           {batchResults.map((r, i) => (
                             <tr key={i}
-                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#f7f5f0")}
-                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = "#ffffff")}
+                              onMouseEnter={e => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+                              onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
                             >
-                              <td className="px-4 py-2.5 font-medium" style={{ color: "#1e2a35" }}>{r.x}</td>
-                              <td className="px-4 py-2.5 text-right font-semibold" style={{ color: "#1A72B5" }}>{r.y.toFixed(6)}</td>
-                              <td className="px-4 py-2.5" style={{ color: r.method === "extrapolated" ? "#145D96" : "#1e2a35" }}>{r.method}</td>
-                              <td className="px-4 py-2.5 text-right" style={{ color: "#1e2a35" }}>{r.p0.x}</td>
-                              <td className="px-4 py-2.5 text-right" style={{ color: "#1e2a35" }}>{r.p0.y}</td>
-                              <td className="px-4 py-2.5 text-right" style={{ color: "#1e2a35" }}>{r.p1.x}</td>
-                              <td className="px-4 py-2.5 text-right" style={{ color: "#1e2a35" }}>{r.p1.y}</td>
+                              <td className="px-4 py-2.5 font-medium" style={{ color: "var(--color-text-primary)" }}>{r.x}</td>
+                              <td className="px-4 py-2.5 text-right font-semibold" style={{ color: "var(--color-accent)" }}>{r.y.toFixed(6)}</td>
+                              <td className="px-4 py-2.5" style={{ color: r.method === "extrapolated" ? "#F0D68A" : "var(--color-text-primary)" }}>{r.method}</td>
+                              <td className="px-4 py-2.5 text-right" style={{ color: "var(--color-text-primary)" }}>{r.p0.x}</td>
+                              <td className="px-4 py-2.5 text-right" style={{ color: "var(--color-text-primary)" }}>{r.p0.y}</td>
+                              <td className="px-4 py-2.5 text-right" style={{ color: "var(--color-text-primary)" }}>{r.p1.x}</td>
+                              <td className="px-4 py-2.5 text-right" style={{ color: "var(--color-text-primary)" }}>{r.p1.y}</td>
                             </tr>
                           ))}
                         </tbody>
