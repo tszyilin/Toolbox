@@ -10,6 +10,11 @@
   --color-accent: #c9e1c0;
   --color-accent-text: #16241a;
 
+  /* Primary button fill */
+  --color-btn: #3f6154;
+  --color-btn-hover: #345245;
+  --color-btn-text: #eff2ee;
+
   --color-text-primary: #f2f2f2;
   --color-text-secondary: #8a8a8a;
   --color-text-muted: #666666;
@@ -91,15 +96,21 @@ h3 {
 
 /* Primary button (the one solid-fill element) */
 .tb-btn-primary {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+  /* Icons inside the button stroke themselves with --color-accent-text,
+     so re-point it at the button's own text colour. */
+  --color-accent-text: var(--color-btn-text);
+  background: var(--color-btn);
+  color: var(--color-btn-text);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-body);
   font-weight: 600;
+  transition: background-color 0.15s ease;
 }
+/* Hover applies even when disabled — the button is styled to look identical
+   in both states, so it should react identically too. */
 .tb-btn-primary:hover {
-  opacity: 0.9;
+  background: var(--color-btn-hover);
 }
 
 /* Chip / filter */

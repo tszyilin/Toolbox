@@ -14,7 +14,6 @@ interface Message {
 
 const TOOL_PATHS: Record<string, string> = {
   "/tools/equal-area-slope": "Equal Area Slope",
-  "/tools/ifd-climate-change": "IFD Climate Change Adjustment",
 };
 
 function extractToolLink(text: string): string | null {
@@ -147,7 +146,7 @@ export default function FloatingChat() {
             <button
               onClick={send}
               disabled={loading || !input.trim()}
-              className="px-3 py-1.5 rounded-lg text-xs disabled:opacity-40 flex-shrink-0 tb-btn-primary"
+              className="px-3 py-1.5 rounded-lg text-xs flex-shrink-0 tb-btn-primary"
             >
               Send
             </button>

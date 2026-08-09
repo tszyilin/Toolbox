@@ -13,7 +13,6 @@ interface Message {
 
 const TOOL_PATHS: Record<string, string> = {
   "/tools/equal-area-slope": "Equal Area Slope",
-  "/tools/ifd-climate-change": "IFD Climate Change Adjustment",
 };
 
 function extractToolLink(text: string): string | null {
@@ -26,7 +25,7 @@ function SendButton({ disabled, onClick }: { disabled: boolean; onClick: () => v
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-8 h-8 rounded-full flex items-center justify-center disabled:opacity-40 transition-colors flex-shrink-0 tb-btn-primary"
+      className="w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0 tb-btn-primary"
       title="Send"
     >
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none">

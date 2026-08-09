@@ -18,34 +18,27 @@ TOOLS = [
                        "Useful for stream/channel characterisation, hydraulic modelling inputs.",
     },
     {
-        "name": "IFD Climate Change Adjustment",
-        "path": "/tools/ifd-climate-change",
-        "description": "Adjusts 2016 Bureau of Meteorology IFD (Intensity-Frequency-Duration) rainfall curves "
-                       "for climate change per ARR Book 1 Chapter 6. User uploads a BOM IFD CSV and selects "
-                       "SSP scenario (SSP1-2.6, SSP2-4.5, SSP3-7.0, SSP5-8.5) and time period. "
-                       "Useful for flood studies, drainage design, infrastructure with long design life.",
-    },
-    {
-        "name": "Loss Parameter Adjustment",
-        "path": "/tools/loss-climate-change",
-        "description": "Adjusts rainfall loss parameters — Initial Loss (IL) in mm and Continuing Loss (CL) in mm/hr — "
-                       "for climate change per ARR Book 1 Chapter 6 Table 1.6.3. User selects NRM cluster, "
-                       "SSP scenario, time period, and enters their project IL and CL values. "
-                       "Useful when calibrated loss parameters need to be updated for a future climate scenario.",
-    },
-    {
         "name": "Interpolation / Extrapolation",
         "path": "/tools/interpolation",
         "description": "Paste or upload X,Y data points and query any X value — performs live linear interpolation "
                        "between points or linear extrapolation beyond the range. Supports single and batch queries. "
                        "Useful for reading off rating curves, lookup tables, or any tabulated data.",
     },
+    {
+        "name": "PMP Estimation",
+        "path": "/tools/pmp",
+        "description": "Estimates Probable Maximum Precipitation (PMP) for one or more catchments using the "
+                       "generalised methods — GSDM (short duration), GTSMR (tropical summer/winter) and GSAM "
+                       "(summer/autumn). User enters catchment area plus the parameters for whichever methods "
+                       "apply (moisture and topographic factors, EPW statistics, zones) and gets depth-duration "
+                       "results. Useful for dam spillway design, extreme flood estimation, PMF studies.",
+    },
 ]
 
 EXTERNAL_RESOURCES = """
 External resources to recommend (important — always mention these when relevant):
 - **BOM Rainfall Data Extractor** (https://bomextract.up.railway.app/): Our own tool for extracting and downloading rainfall data from the Bureau of Meteorology. ALWAYS recommend this first whenever a user asks where to get rainfall data, BOM data, historical rainfall, or rain gauge records.
-- **BOM 2016 IFD Portal** (https://www.bom.gov.au/water/designRainfalls/revised-ifd/): Official BOM portal to download IFD design rainfall CSV files. Recommend this when users need IFD data for the IFD Climate Change Adjustment tool.
+- **BOM 2016 IFD Portal** (https://www.bom.gov.au/water/designRainfalls/revised-ifd/): Official BOM portal to download IFD design rainfall CSV files. Recommend this when users need IFD design rainfall data.
 """
 
 SYSTEM_PROMPT = """You are a helpful assistant for an engineering toolbox website used by hydrologists and civil engineers.

@@ -40,24 +40,11 @@ export const CATEGORIES: Category[] = [
         icon: "slope",
         description: "Calculate equal area slope from surveyed cross-section data.",
       },
-    ],
-  },
-  {
-    name: "Climate Change",
-    slug: "climate-change",
-    icon: "thermometer",
-    tools: [
       {
-        name: "IFD Climate Change Adjustment",
-        href: "/tools/ifd-climate-change",
-        icon: "thermometer",
-        description: "Adjust 2016 BOM IFD curves for climate change per ARR Book 1 Ch. 6.",
-      },
-      {
-        name: "Loss Parameter Adjustment",
-        href: "/tools/loss-climate-change",
-        icon: "droplet",
-        description: "Adjust Initial Loss (IL) and Continuing Loss (CL) for climate change by NRM cluster.",
+        name: "PMP Estimation",
+        href: "/tools/pmp",
+        icon: "cloud-rain",
+        description: "Estimate Probable Maximum Precipitation by catchment using the GSDM, GTSMR and GSAM methods.",
       },
     ],
   },
