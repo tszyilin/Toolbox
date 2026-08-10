@@ -58,6 +58,14 @@ def _lookup_gsdm_depth(area: float, terrain: str, duration: float) -> float:
     raise ValueError(f"GSDM interpolation failed for area={area}, terrain={terrain}, duration={duration}")
 
 
+PMP_ROUNDING_MM = 10
+
+
+def _round_pmp(v: float) -> float:
+    """PMP depths are reported to the nearest 10 mm."""
+    return float(round(v / PMP_ROUNDING_MM) * PMP_ROUNDING_MM)
+
+
 def _calc_gsdm(area: float, params: dict) -> dict:
     durations = sorted(_gsdm["duration"].unique())
     limit = float(params["duration_limit"])
@@ -73,12 +81,14 @@ def _calc_gsdm(area: float, params: dict) -> dict:
         ds = _lookup_gsdm_depth(area, "S", dur)
         dr = _lookup_gsdm_depth(area, "R", dur)
         pmp_raw = (smooth_pct * ds + rough_pct * dr) * eaf * maf
-        results_by_dur[dur] = round(pmp_raw, 1)
+        results_by_dur[dur] = pmp_raw
 
     if not results_by_dur:
         raise ValueError("No GSDM durations within the specified limit")
 
+    # Pick the controlling duration before rounding, so 10 mm ties can't move it.
     controlling_dur = max(results_by_dur, key=results_by_dur.get)
+    results_by_dur = {d: _round_pmp(v) for d, v in results_by_dur.items()}
     return {
         "by_duration": [{"duration_hr": d, "pmp_mm": v} for d, v in sorted(results_by_dur.items())],
         "controlling_duration_hr": controlling_dur,
@@ -105,8 +115,9 @@ def _calc_gtsmr(area: float, params: dict) -> dict:
         for dur in avail_durs:
             base = _lookup_depth(_gtsmr, a, zone, dur)
             pmp = base * taf * daf * maf
-            results_by_dur[dur] = round(pmp, 1)
+            results_by_dur[dur] = pmp
         controlling_dur = max(results_by_dur, key=results_by_dur.get)
+        results_by_dur = {d: _round_pmp(v) for d, v in results_by_dur.items()}
         seasons[label] = {
             "by_duration": [{"duration_hr": d, "pmp_mm": v} for d, v in sorted(results_by_dur.items())],
             "controlling_duration_hr": controlling_dur,
@@ -140,8 +151,9 @@ def _calc_gsam(area: float, params: dict) -> dict:
         for dur in avail_durs:
             base = _lookup_depth(_gsam, a, zone, dur)
             pmp = base * taf * maf
-            results_by_dur[dur] = round(pmp, 1)
+            results_by_dur[dur] = pmp
         controlling_dur = max(results_by_dur, key=results_by_dur.get)
+        results_by_dur = {d: _round_pmp(v) for d, v in results_by_dur.items()}
         seasons[label] = {
             "by_duration": [{"duration_hr": d, "pmp_mm": v} for d, v in sorted(results_by_dur.items())],
             "controlling_duration_hr": controlling_dur,
@@ -184,8 +196,9 @@ def calculate(catchments: list[dict]) -> list[dict]:
             pmps.append(result["gsam"]["pmp_mm"])
 
         if pmps:
+            # already rounded to the nearest 10 mm by each method
             governing_pmp = max(pmps)
-            result["governing_pmp_mm"] = round(governing_pmp, 1)
+            result["governing_pmp_mm"] = governing_pmp
             result["volume_m3"] = round(governing_pmp * area * 1e3, 0)
 
         results.append(result)

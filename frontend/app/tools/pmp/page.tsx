@@ -372,7 +372,7 @@ function DurationChart({ title, series, name }: { title: string; series: Series[
                   {r.name}
                 </span>
                 <span style={{ color: "var(--color-text-primary)", fontVariantNumeric: "tabular-nums" }}>
-                  {r.v!.toFixed(1)}
+                  {r.v!.toFixed(0)}
                 </span>
               </p>
             ))}

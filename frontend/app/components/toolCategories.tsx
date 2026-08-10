@@ -49,6 +49,19 @@ export const CATEGORIES: Category[] = [
     ],
   },
   {
+    name: "Open Channel",
+    slug: "open-channel",
+    icon: "droplet",
+    tools: [
+      {
+        name: "River Resistance & Manning's n (Testing)",
+        href: "/tools/river-resistance",
+        icon: "droplet",
+        description: "Bed-form type, Chézy resistance factor and Manning's n for a sand-bed river from grain size, depth and slope.",
+      },
+    ],
+  },
+  {
     name: "External Resource",
     slug: "external-resource",
     icon: "cloud-rain",
