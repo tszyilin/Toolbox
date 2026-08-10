@@ -543,6 +543,9 @@ export default function PmpPage() {
   const activeMaf = activeId_ ? maf[activeId_] : undefined;
   const activeDur = activeId_ ? dur[activeId_] : undefined;
   const activeZone = activeId_ ? zone[activeId_] : undefined;
+  // Results follow the selected tab; the backend returns them in catchment order.
+  const activeIndex = catchments.findIndex(c => c.id === active?.id);
+  const activeResult = activeIndex >= 0 ? results[activeIndex] : undefined;
 
   function updateCatchment(id: string, patch: Partial<CatchmentForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -746,16 +749,6 @@ export default function PmpPage() {
                       style={inputStyle}
                     />
                   </Field>
-                  <Field label="Latitude (°)">
-                    <input
-                      type="number"
-                      step="any"
-                      placeholder="e.g. -27.47"
-                      value={c.latitude}
-                      onChange={(e) => updateCatchment(c.id, { latitude: e.target.value })}
-                      style={inputStyle}
-                    />
-                  </Field>
                   <Field label="Longitude (°)">
                     <input
                       type="number"
@@ -763,6 +756,16 @@ export default function PmpPage() {
                       placeholder="e.g. 153.03"
                       value={c.longitude}
                       onChange={(e) => updateCatchment(c.id, { longitude: e.target.value })}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Field label="Latitude (°)">
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="e.g. -27.47"
+                      value={c.latitude}
+                      onChange={(e) => updateCatchment(c.id, { latitude: e.target.value })}
                       style={inputStyle}
                     />
                   </Field>
@@ -1044,10 +1047,12 @@ export default function PmpPage() {
           </div>
         )}
 
-        {results.length > 0 && (
+        {activeResult && (
           <div className="mt-8 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>Results</h2>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                Results — {activeResult.name}
+              </h2>
               <button
                 onClick={downloadCSV}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
@@ -1055,45 +1060,41 @@ export default function PmpPage() {
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
-                Download CSV
+                Download CSV{results.length > 1 ? ` (all ${results.length})` : ""}
               </button>
             </div>
 
-            {/* Summary table */}
-            <div className="overflow-x-auto rounded-xl shadow-sm" style={{ border: "1px solid var(--color-border)" }}>
-              <table className="w-full text-sm">
-                <thead style={{ backgroundColor: "var(--color-elevated)" }}>
-                  <tr>
-                    {["Catchment", "Area (km²)", "GSDM (mm)", "GTSMR (mm)", "GSAM (mm)", "Governing PMP (mm)", "Volume (m³)"].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left font-semibold whitespace-nowrap" style={{ color: "var(--color-text-primary)" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-panel)" }}>
-                  {results.map((r, i) => (
-                    <tr key={i} style={{ color: "var(--color-text-primary)" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                    >
-                      <td className="px-4 py-3 font-medium">{r.name}</td>
-                      <td className="px-4 py-3 font-mono">{r.area}</td>
-                      <td className="px-4 py-3 font-mono">{r.gsdm ? `${r.gsdm.pmp_mm} @ ${r.gsdm.controlling_duration_hr}hr` : "—"}</td>
-                      <td className="px-4 py-3 font-mono">{r.gtsmr ? `${r.gtsmr.pmp_mm} @ ${r.gtsmr.controlling_duration_hr}hr (${r.gtsmr.governing_season})` : "—"}</td>
-                      <td className="px-4 py-3 font-mono">{r.gsam ? `${r.gsam.pmp_mm} @ ${r.gsam.controlling_duration_hr}hr (${r.gsam.governing_season})` : "—"}</td>
-                      <td className="px-4 py-3 font-mono font-bold">{r.governing_pmp_mm ?? "—"}</td>
-                      <td className="px-4 py-3 font-mono">{r.volume_m3 ? r.volume_m3.toLocaleString() : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Per-method breakdown */}
-            {results.map((r, i) => (
+            {/* Per-method breakdown for the selected catchment */}
+            {[activeResult].map((r, i) => (
               <div key={i} className="rounded-xl shadow-sm tb-card">
-                <div className="px-6 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
-                  <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.name}</span>
-                  <span className="ml-3 text-sm" style={{ color: "var(--color-text-secondary)" }}>{r.area} km²</span>
+                <div className="px-6 py-4 flex items-end justify-between gap-4 flex-wrap"
+                  style={{ borderBottom: "1px solid var(--color-border)" }}>
+                  <div>
+                    <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{r.name}</span>
+                    <span className="ml-3 text-sm" style={{ color: "var(--color-text-secondary)" }}>{r.area} km²</span>
+                    <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
+                      {[
+                        r.gsdm ? `GSDM ${r.gsdm.pmp_mm} mm @ ${r.gsdm.controlling_duration_hr} hr` : null,
+                        r.gtsmr ? `GTSMR ${r.gtsmr.pmp_mm} mm @ ${r.gtsmr.controlling_duration_hr} hr (${r.gtsmr.governing_season})` : null,
+                        r.gsam ? `GSAM ${r.gsam.pmp_mm} mm @ ${r.gsam.controlling_duration_hr} hr (${r.gsam.governing_season})` : null,
+                      ].filter(Boolean).join("  ·  ")}
+                    </p>
+                  </div>
+                  {r.governing_pmp_mm !== undefined && (
+                    <div className="text-right">
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
+                        Governing PMP
+                      </p>
+                      <p className="text-2xl font-bold" style={{ color: "var(--color-accent)" }}>
+                        {r.governing_pmp_mm} <span className="text-sm font-normal">mm</span>
+                      </p>
+                      {r.volume_m3 !== undefined && (
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                          {r.volume_m3.toLocaleString()} m³
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* depth-duration curves */}
