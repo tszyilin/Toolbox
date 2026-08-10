@@ -115,14 +115,28 @@ interface MafState {
   applied?: boolean;
 }
 
+interface GtsmrFactors {
+  epw_summer: number;
+  epw_winter: number | null;
+  epw_standard_summer: number;
+  epw_standard_winter: number;
+  maf_summer: number;
+  maf_winter: number | null;
+  taf: number | null;
+  daf: number | null;
+  source: string;
+}
+
 interface ZoneLookup {
   zone: string;
   zone_label: string;
+  zones: string[];
   gtsmr_applicable: boolean;
   gsam_applicable: boolean;
   gtsmr_summer: string | null;
   gtsmr_winter: string | null;
-  distance_px: number;
+  gsam_summer: string | null;
+  gsam_autumn: string | null;
   notes: string[];
   source: string;
 }
@@ -475,6 +489,7 @@ export default function PmpPage() {
   const [maf, setMaf] = useState<Record<string, MafState>>({});
   const [dur, setDur] = useState<Record<string, DurationLookup | undefined>>({});
   const [zone, setZone] = useState<Record<string, ZoneLookup | undefined>>({});
+  const [gtf, setGtf] = useState<Record<string, GtsmrFactors | undefined>>({});
   const mafTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeId_ = active?.id;
@@ -524,14 +539,43 @@ export default function PmpPage() {
         if (zres.ok) {
           const zbody: ZoneLookup = await zres.json();
           setZone(m => ({ ...m, [activeId_]: zbody }));
-          if (zbody.gtsmr_summer) {
-            setCatchments(prev => prev.map(c => {
-              if (c.id !== activeId_) return c;
-              const g = { ...c.gtsmr, zone_summer: zbody.gtsmr_summer as string };
+          setCatchments(prev => prev.map(c => {
+            if (c.id !== activeId_) return c;
+            const next = { ...c };
+            if (zbody.gtsmr_summer) {
+              const g = { ...c.gtsmr, zone_summer: zbody.gtsmr_summer };
               if (zbody.gtsmr_winter) g.zone_winter = zbody.gtsmr_winter;
-              return { ...c, gtsmr: g };
-            }));
-          }
+              next.gtsmr = g;
+            }
+            if (zbody.gsam_summer) {
+              const s = { ...c.gsam, zone_summer: zbody.gsam_summer };
+              if (zbody.gsam_autumn) s.zone_autumn = zbody.gsam_autumn;
+              next.gsam = s;
+            }
+            return next;
+          }));
+        }
+
+        // GTSMR catchment factors straight off the Bureau's gridded data.
+        const gres = await fetch(`${API_URL}/tools/pmp/gtsmr-factors?lat=${lat}&lon=${lon}`);
+        if (gres.ok) {
+          const gbody: GtsmrFactors = await gres.json();
+          setGtf(m => ({ ...m, [activeId_]: gbody }));
+          setCatchments(prev => prev.map(c => {
+            if (c.id !== activeId_) return c;
+            return {
+              ...c,
+              gtsmr: {
+                ...c.gtsmr,
+                epw_avg_summer: String(gbody.epw_summer),
+                epw_std_summer: String(gbody.epw_standard_summer),
+                ...(gbody.epw_winter !== null ? { epw_avg_winter: String(gbody.epw_winter) } : {}),
+                epw_std_winter: String(gbody.epw_standard_winter),
+                ...(gbody.taf !== null ? { topographic_factor: String(gbody.taf) } : {}),
+                ...(gbody.daf !== null ? { decay_factor: String(gbody.daf) } : {}),
+              },
+            };
+          }));
         }
       } catch {
         setMaf(m => ({ ...m, [activeId_]: { loading: false, error: "Could not reach the server." } }));
@@ -543,6 +587,7 @@ export default function PmpPage() {
   const activeMaf = activeId_ ? maf[activeId_] : undefined;
   const activeDur = activeId_ ? dur[activeId_] : undefined;
   const activeZone = activeId_ ? zone[activeId_] : undefined;
+  const activeGtf = activeId_ ? gtf[activeId_] : undefined;
   // Results follow the selected tab; the backend returns them in catchment order.
   const activeIndex = catchments.findIndex(c => c.id === active?.id);
   const activeResult = activeIndex >= 0 ? results[activeIndex] : undefined;
@@ -933,8 +978,13 @@ export default function PmpPage() {
                         </p>
                         {activeZone.gtsmr_applicable && (
                           <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                            summer → {activeZone.gtsmr_summer}
+                            GTSMR summer → {activeZone.gtsmr_summer}
                             {activeZone.gtsmr_winter ? ` · winter → ${activeZone.gtsmr_winter}` : " · winter left unset"}
+                          </p>
+                        )}
+                        {activeZone.gsam_applicable && (
+                          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                            GSAM summer → {activeZone.gsam_summer} · autumn → {activeZone.gsam_autumn}
                           </p>
                         )}
                       </div>
@@ -949,11 +999,59 @@ export default function PmpPage() {
                         ))}
                       </ul>
                     )}
-                    {activeZone.gsam_applicable && (
-                      <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
-                        GSAM zones are not derived from Figure 1 — set those manually below.
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                      Zones are read from the Bureau&apos;s own zone polygons; all fields below stay editable.
+                    </p>
+                  </div>
+                )}
+
+                {/* Catchment factors from the Bureau's GTSMR gridded data */}
+                {activeGtf && (
+                  <div className="mb-5 rounded-lg px-4 py-3"
+                    style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
+                        Catchment Factors
                       </p>
-                    )}
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeGtf.source}</p>
+                    </div>
+                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2">
+                      <div>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW summer</p>
+                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                          {activeGtf.epw_summer.toFixed(2)} <span className="text-xs font-normal">mm</span>
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                          MAF {activeGtf.maf_summer.toFixed(3)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW winter</p>
+                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                          {activeGtf.epw_winter !== null ? activeGtf.epw_winter.toFixed(2) : "—"}
+                          <span className="text-xs font-normal"> mm</span>
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                          MAF {activeGtf.maf_winter !== null ? activeGtf.maf_winter.toFixed(3) : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>TAF</p>
+                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                          {activeGtf.taf !== null ? activeGtf.taf.toFixed(3) : "—"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>DAF</p>
+                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                          {activeGtf.daf !== null ? activeGtf.daf.toFixed(3) : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                      Standard EPW {activeGtf.epw_standard_summer} mm annual / {activeGtf.epw_standard_winter} mm winter
+                      (guidebook §2.3.1). Values are read at the centroid and fill the fields below — all still editable.
+                    </p>
                   </div>
                 )}
 

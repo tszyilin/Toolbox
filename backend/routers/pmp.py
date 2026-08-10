@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from calculators.pmp import calculate
-from calculators import gsdm_maf, gsdm_duration, gtsmr_zones
+from calculators import gsdm_maf, gsdm_duration, gtsmr_zones, gtsmr_grids
 
 router = APIRouter(prefix="/tools/pmp", tags=["pmp"])
 
@@ -47,6 +47,20 @@ async def gtsmr_zone(
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     result["source"] = "BoM GSDM Figure 1 (June 2003)"
+    return JSONResponse(content=result)
+
+
+@router.get("/gtsmr-factors")
+async def gtsmr_factors(
+    lat: float = Query(..., description="Catchment centroid latitude, decimal degrees (negative south)"),
+    lon: float = Query(..., description="Catchment centroid longitude, decimal degrees"),
+):
+    """GTSMR catchment factors (EPW, TAF, DAF) from the Bureau's gridded data."""
+    try:
+        result = gtsmr_grids.lookup(lat, lon)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    result["source"] = "BoM GTSMR CD gridded data (September 2005)"
     return JSONResponse(content=result)
 
 

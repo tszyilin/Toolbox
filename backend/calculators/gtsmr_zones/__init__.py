@@ -1,152 +1,153 @@
-"""GTSMR application zone (coastal / inland) looked up by latitude / longitude.
+"""PMP application zones for a catchment centroid.
 
-From Figure 1 of the GSDM guidebook (BoM, June 2003). The figure is a raster
-with no graticule, so its two halves were registered to the same Albers grid as
-the moisture-factor map by matching their coastline (median 0 page pixels).
+Uses the Bureau's own zone polygons from the GTSMR CD (September 2005),
+`pmp_zones/zones_all.shp` — GTSMR coastal / inland / SW WA winter, GSAM coastal /
+inland, and the two transition zones. This replaces an earlier boundary traced by
+hand off GSDM Figure 1, which could not represent the SW WA winter zone and
+approximated the GTSMR/GSAM divide with a straight chord.
 
-The boundary between the GTSMR coastal and inland application zones is a single
-hairline arc; it was separated from the thicker GSAM lines it crosses by local
-stroke width, then ordered into a path so the side test has a consistent
-orientation.
+Zones deliberately overlap: south-west WA is inside both the GTSMR Coastal Zone
+and the GTSMR SW WA Winter Zone, because the coastal zone supplies the summer
+depths and the SW WA zone the winter ones.
 
-Scope, deliberately narrow: this reports coastal vs inland only. Figure 1's GSAM
-coastal/inland divide did not survive validation and is not modelled here, and
-neither is the SW WA winter zone — for a catchment in the south-west the caller
-is told to check the figure rather than given a guess.
+The rings are simplified to about 0.9 km and islands under roughly 40 km2 are
+dropped, taking 308,000 points down to 11,700 (233 KB). A centroid on a small
+island may therefore fall outside every zone.
 """
 import json
 import math
 import os
 
-_DATA = os.path.join(os.path.dirname(__file__), "data", "gtsmr_zones.json")
+_DATA = os.path.join(os.path.dirname(__file__), "data", "zones_all.json")
 
 with open(_DATA, "r", encoding="utf-8") as fh:
     _MAP = json.load(fh)
 
-_P = _MAP["projection"]
-_APEX_X, _APEX_Y = _P["apex"]
-_A, _B, _N, _LON0 = _P["A"], _P["B"], _P["n"], _P["lon0"]
-ARC = [tuple(p) for p in _MAP["gtsmr_arc"]]
+ZONES = _MAP["zones"]
+SOURCE = _MAP["source"]
 
-LAT_RANGE = (-44.0, -8.0)
-LON_RANGE = (110.0, 156.0)
+GTSMR_COASTAL = "GTSMR Coastal Zone"
+GTSMR_INLAND = "GTSMR Inland Zone"
+GTSMR_SWWA = "GTSMR SW WA Winter Zone"
+GSAM_COASTAL = "GSAM Coastal Zone"
+GSAM_INLAND = "GSAM Inland Zone"
+TRANSITIONS = ("GSAM-GTSMR Coastal Transition Zone", "GSAM-GTSMR WA Transition Zone")
 
-# Rough envelope of Figure 1's SW WA winter zone. Only used to raise a flag.
-SW_WA = {"lat_max": -29.0, "lon_max": 121.0}
-
-_E2 = 0.00669438002290
-_E = math.sqrt(_E2)
-
-
-def _q(phi: float) -> float:
-    s = math.sin(phi)
-    return (1 - _E2) * (
-        s / (1 - _E2 * s * s)
-        - (1 / (2 * _E)) * math.log((1 - _E * s) / (1 + _E * s))
-    )
+LAT_RANGE = (-44.0, -9.0)
+LON_RANGE = (110.0, 158.0)
 
 
-def to_page(lat: float, lon: float):
-    rho = math.sqrt(_A - _B * _q(math.radians(lat)))
-    theta = _N * (lon - _LON0)
-    return _APEX_X + rho * math.sin(theta), _APEX_Y + rho * math.cos(theta)
+def _inside(zone, lon, lat):
+    """Even-odd ray casting across every ring, so holes fall out naturally."""
+    x0, y0, x1, y1 = zone["bbox"]
+    if not (x0 <= lon <= x1 and y0 <= lat <= y1):
+        return False
+    hit = False
+    for ring in zone["rings"]:
+        for i in range(len(ring) - 1):
+            xa, ya = ring[i]
+            xb, yb = ring[i + 1]
+            if (ya > lat) != (yb > lat):
+                xint = xa + (lat - ya) * (xb - xa) / (yb - ya)
+                if lon < xint:
+                    hit = not hit
+    return hit
 
 
-_WEST_TIP = min(ARC, key=lambda p: p[0])
-_EAST_TIP = max(ARC, key=lambda p: p[0])
-
-
-def _southern_limit(px: float) -> float:
-    """The chord closing the arc between its two arm tips.
-
-    The arc is open at the bottom: its real southern boundary is the GTSMR/GSAM
-    divide, which could not be traced reliably off Figure 1. The chord between
-    the arm tips approximates it, so anything south of this line is reported as
-    outside the GTSMR zones rather than guessed at.
-    """
-    (x1, y1), (x2, y2) = _WEST_TIP, _EAST_TIP
-    if abs(x2 - x1) < 1e-9:
-        return min(y1, y2)
-    t = (px - x1) / (x2 - x1)
-    return y1 + t * (y2 - y1)
+def _distance_to_edge(zone, lon, lat):
+    """Rough degrees to the nearest ring vertex — used only to flag marginal calls."""
+    best = None
+    for ring in zone["rings"]:
+        for x, y in ring:
+            d = (x - lon) ** 2 + (y - lat) ** 2
+            if best is None or d < best:
+                best = d
+    return math.sqrt(best) if best is not None else None
 
 
 def lookup(lat: float, lon: float) -> dict:
-    """Which application zone of Figure 1 a catchment centroid falls in."""
+    """Which PMP application zones a catchment centroid falls in."""
     if not (LAT_RANGE[0] <= lat <= LAT_RANGE[1]):
-        raise ValueError(f"Latitude {lat} is outside the map.")
+        raise ValueError(f"Latitude {lat} is outside the zone data.")
     if not (LON_RANGE[0] <= lon <= LON_RANGE[1]):
-        raise ValueError(f"Longitude {lon} is outside the map.")
+        raise ValueError(f"Longitude {lon} is outside the zone data.")
 
-    px, py = to_page(lat, lon)
-
-    best_i, best_d = 0, None
-    for i, (x, y) in enumerate(ARC):
-        d = (x - px) ** 2 + (y - py) ** 2
-        if best_d is None or d < best_d:
-            best_i, best_d = i, d
-    dist = math.sqrt(best_d)
-
-    j = max(0, best_i - 6)
-    k = min(len(ARC) - 1, best_i + 6)
-    tx, ty = ARC[k][0] - ARC[j][0], ARC[k][1] - ARC[j][1]
-    vx, vy = px - ARC[best_i][0], py - ARC[best_i][1]
-    outside = (tx * vy - ty * vx) > 0          # calibrated on Darwin / Alice Springs
-
+    hits = [z["zone"] for z in ZONES if _inside(z, lon, lat)]
     notes = []
-    in_sw_wa = lat <= SW_WA["lat_max"] and lon <= SW_WA["lon_max"]
 
-    # South of the closing chord, GTSMR's zones no longer apply — this has to be
-    # checked for points inside the arc's belly too, not just outside it.
-    if py < _southern_limit(px):
+    gtsmr_summer = gtsmr_winter = None
+    if GTSMR_COASTAL in hits:
+        gtsmr_summer = "COAST_S"
+        gtsmr_winter = "COAST_W"
+    elif GTSMR_INLAND in hits:
+        gtsmr_summer = "INLAND_S"
+
+    # The SW WA winter zone overrides the coastal winter depths.
+    if GTSMR_SWWA in hits:
+        gtsmr_winter = "SWWA_W"
+
+    if gtsmr_summer == "INLAND_S" and gtsmr_winter is None:
         notes.append(
-            "South of the GTSMR application zones on Figure 1, so GTSMR does not "
-            "apply here. Figure 1 shows GSAM zones for this part of the country, "
-            "which are not modelled — set the GSAM zones manually."
+            "The GTSMR inland zone has no winter equivalent — the winter zone list "
+            "offers only COAST_W and SWWA_W. Left unset; choose manually if needed."
         )
-        if in_sw_wa:
+
+    gsam_summer = gsam_autumn = None
+    if GSAM_COASTAL in hits:
+        gsam_summer, gsam_autumn = "GSAM_CS", "GSAM_CA"
+    elif GSAM_INLAND in hits:
+        gsam_summer, gsam_autumn = "GSAM_IS", "GSAM_IA"
+
+    for t in TRANSITIONS:
+        if t in hits:
             notes.append(
-                "This centroid is in south-west WA, where Figure 1 shows a "
-                "GTSMR SW WA Winter Zone (SWWA_W). Check the figure."
+                f"Also inside the {t} — both methods may apply here; check the "
+                "guidebook before discarding either."
             )
-        return {
-            "zone": "outside",
-            "zone_label": "Outside the GTSMR zones",
-            "gtsmr_applicable": False,
-            "gsam_applicable": True,
-            "gtsmr_summer": None,
-            "gtsmr_winter": None,
-            "distance_px": round(dist, 1),
-            "notes": notes,
-        }
 
-    zone = "coastal" if outside else "inland"
-    summer = "COAST_S" if zone == "coastal" else "INLAND_S"
-    winter = "COAST_W" if zone == "coastal" else None
-    if winter is None:
+    unnamed = [h for h in hits if h == "(unnamed)"]
+    if unnamed:
         notes.append(
-            "Figure 1's inland zone has no winter equivalent — the GTSMR winter "
-            "zone list only offers COAST_W and SWWA_W. Left unset; choose manually."
+            "Also inside an unnamed zone in the Bureau's shapefile covering western "
+            "Tasmania (Figure 1 labels this the West Coast Tasmania Varied Zone)."
         )
-    if in_sw_wa:
+
+    gtsmr_applicable = gtsmr_summer is not None
+    gsam_applicable = gsam_summer is not None
+
+    if not hits:
         notes.append(
-            "This centroid is in south-west WA, where Figure 1 also shows a "
-            "GTSMR SW WA Winter Zone (SWWA_W) that is not modelled here."
+            "This centroid is not inside any PMP application zone. Small islands are "
+            "dropped when the zone outlines are simplified, so check the zone map if "
+            "the catchment is coastal."
         )
-    if dist < 25:
-        notes.append(
-            f"Only {dist:.0f} page px (~{dist * 4.9:.0f} km) from the zone boundary — "
-            "close enough to be worth checking by eye."
-        )
+
+    named = [h for h in hits if h != "(unnamed)"]
+    if named:
+        label = " + ".join(named)
+    else:
+        label = "Outside the PMP zones"
+
+    # Flag a centroid sitting close to a boundary.
+    for z in ZONES:
+        if z["zone"] in hits:
+            d = _distance_to_edge(z, lon, lat)
+            if d is not None and d < 0.15:
+                notes.append(
+                    f"About {d * 111:.0f} km from the edge of the {z['zone']} — "
+                    "close enough to be worth checking on the zone map."
+                )
+                break
 
     return {
-        "zone": zone,
-        "zone_label": f"GTSMR {zone.capitalize()} Zone",
-        "gtsmr_applicable": True,
-        # GTSMR country is the tropical-storm region; GSAM covers the south-east.
-        "gsam_applicable": False,
-        "gtsmr_summer": summer,
-        "gtsmr_winter": winter,
-        "distance_px": round(dist, 1),
+        "zone": ", ".join(named) if named else "outside",
+        "zone_label": label,
+        "zones": hits,
+        "gtsmr_applicable": gtsmr_applicable,
+        "gsam_applicable": gsam_applicable,
+        "gtsmr_summer": gtsmr_summer,
+        "gtsmr_winter": gtsmr_winter,
+        "gsam_summer": gsam_summer,
+        "gsam_autumn": gsam_autumn,
         "notes": notes,
     }
