@@ -488,6 +488,7 @@ export default function PmpPage() {
     setCatchments((prev) => [...prev, makeCatchment(id)]);
     setNextId((n) => n + 1);
     setActiveId(id);
+    setResults([]);
   }
 
   function removeCatchment(id: string) {
@@ -499,6 +500,8 @@ export default function PmpPage() {
       }
       return next;
     });
+    // results are matched to catchments by position, so drop them
+    setResults([]);
   }
 
   /** GTSMR and GSAM are picked together as the one long-duration option. */
@@ -615,20 +618,31 @@ export default function PmpPage() {
   const activeIndex = catchments.findIndex(c => c.id === active?.id);
   const activeResult = activeIndex >= 0 ? results[activeIndex] : undefined;
 
+  /** Any input change makes the shown results stale — drop them rather than
+   *  leave charts on screen that no longer match the form (unticking a method
+   *  used to leave its curves plotted). */
+  function invalidateResults() {
+    setResults((r) => (r.length ? [] : r));
+  }
+
   function updateCatchment(id: string, patch: Partial<CatchmentForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
+    invalidateResults();
   }
 
   function updateGsdm(id: string, patch: Partial<GsdmForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gsdm: { ...c.gsdm, ...patch } } : c)));
+    invalidateResults();
   }
 
   function updateGtsmr(id: string, patch: Partial<GtsmrForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gtsmr: { ...c.gtsmr, ...patch } } : c)));
+    invalidateResults();
   }
 
   function updateGsam(id: string, patch: Partial<GsamForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gsam: { ...c.gsam, ...patch } } : c)));
+    invalidateResults();
   }
 
   async function handleSubmit(e: React.FormEvent) {

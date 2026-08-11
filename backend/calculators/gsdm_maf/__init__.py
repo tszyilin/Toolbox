@@ -9,6 +9,14 @@ roughly 5 km.
 
 A queried point is placed on the sheet, then the factor is interpolated
 linearly between the two contours that bracket it.
+
+The sheet carries two contour series: the labelled ones every 0.05, drawn in
+red, and an unlabelled series every 0.01 drawn in a pale tint. Both are used.
+The 0.01 lines carry no printed values, so each takes its value from its
+position between the labelled lines it sits between — there are always exactly
+four of them per 0.05 step, and every value recovered this way falls on a 0.01
+step that is not a multiple of 0.05, which is the check that the counting is
+right.
 """
 import json
 import math
@@ -27,7 +35,7 @@ _CONTOURS = [(c["v"], c["p"]) for c in _MAP["contours"]]
 VALUES = sorted({v for v, _ in _CONTOURS})
 MIN_VALUE, MAX_VALUE = VALUES[0], VALUES[-1]
 
-CONTOUR_INTERVAL = 0.05     # spacing of the printed contours
+CONTOUR_INTERVAL = 0.01     # the figure carries a 0.01 series between the labelled 0.05 lines
 STEP = 0.005                # reporting granularity
 
 # Rough extent of the drawn map — outside this the answer would be extrapolation.
