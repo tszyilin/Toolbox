@@ -478,6 +478,9 @@ export default function PmpPage() {
   const [results, setResults] = useState<CatchmentResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* The parameter panels are the working behind the numbers — they stay hidden
+     until a calculation has been run, then remain available for adjustment. */
+  const [showParams, setShowParams] = useState(false);
 
   // The tab bar edits one catchment at a time; fall back to the first if the
   // active one was just removed.
@@ -711,6 +714,7 @@ export default function PmpPage() {
       }
       const data = await res.json();
       setResults(data.results);
+      setShowParams(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -885,86 +889,204 @@ export default function PmpPage() {
                 </div>
               </Panel>
 
-              {/* 3. GSDM — only when picked in panel 2 */}
-              {gsdmStep && (
-              <Panel step={gsdmStep} title="GSDM">
-                {/* read off BoM GSDM Figures 2 and 3 for this centroid */}
-                {activeMaf?.data && (
-                  <div className="mb-5 rounded-lg px-4 py-3 flex items-start justify-between gap-4 flex-wrap"
-                    style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <div>
+              {/* What the figures give for this centroid — shown before Calculate,
+                  since the duration limit in the intermediate zone is a choice. */}
+              {/* read off BoM GSDM Figures 2 and 3 for this centroid */}
+              {activeMaf?.data && (
+                <div className="mb-5 rounded-lg px-4 py-3 flex items-start justify-between gap-4 flex-wrap"
+                  style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
+                      Moisture Adjustment Factor
+                    </p>
+                    <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--color-accent)" }}>
+                      {activeMaf.data.maf.toFixed(3)}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                      between the {activeMaf.data.lower.toFixed(2)} and {activeMaf.data.upper.toFixed(2)} contours
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => updateGsdm(c.id, { moisture_factor: String(activeMaf.data!.conservative) })}
+                      className="mt-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors"
+                      style={ghostBtnStyle}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-panel)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      Use {activeMaf.data.conservative.toFixed(2)} instead
+                    </button>
+                  </div>
+
+                  {activeDur && (
+                    <div style={{ borderLeft: "1px solid var(--color-border)", paddingLeft: "1rem" }}>
                       <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
-                        Moisture Adjustment Factor
+                        Max Duration
                       </p>
-                      <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--color-accent)" }}>
-                        {activeMaf.data.maf.toFixed(3)}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                        between the {activeMaf.data.lower.toFixed(2)} and {activeMaf.data.upper.toFixed(2)} contours
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => updateGsdm(c.id, { moisture_factor: String(activeMaf.data!.conservative) })}
-                        className="mt-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-colors"
-                        style={ghostBtnStyle}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-panel)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                      >
-                        Use {activeMaf.data.conservative.toFixed(2)} instead
-                      </button>
-                    </div>
-
-                    {activeDur && (
-                      <div style={{ borderLeft: "1px solid var(--color-border)", paddingLeft: "1rem" }}>
-                        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
-                          Max Duration
-                        </p>
-                        {activeDur.recommended !== null ? (
-                          <>
-                            <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--color-accent)" }}>
-                              {activeDur.recommended} hr
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                              {activeDur.zone} zone
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <div className="flex gap-2 mt-1">
-                              {activeDur.options.map(o => {
-                                const picked = c.gsdm.duration_limit === String(o);
-                                return (
-                                  <button key={o} type="button"
-                                    onClick={() => updateGsdm(c.id, { duration_limit: String(o) })}
-                                    className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
-                                    style={{
-                                      border: picked ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
-                                      color: picked ? "var(--color-accent)" : "var(--color-text-primary)",
-                                      backgroundColor: picked ? "var(--color-panel)" : "transparent",
-                                    }}>
-                                    {o} hr
-                                  </button>
-                                );
-                              })}
-                            </div>
-                            <p className="text-xs mt-1" style={{ color: "#F0D68A" }}>
-                              intermediate zone — choose one
-                              {activeDur.nearer ? ` (nearer the ${activeDur.nearer} hr side)` : ""}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="text-right">
-                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeMaf.data.source}</p>
-                      {activeDur && (
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeDur.source}</p>
+                      {activeDur.recommended !== null ? (
+                        <>
+                          <p className="text-2xl font-bold mt-0.5" style={{ color: "var(--color-accent)" }}>
+                            {activeDur.recommended} hr
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                            {activeDur.zone} zone
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex gap-2 mt-1">
+                            {activeDur.options.map(o => {
+                              const picked = c.gsdm.duration_limit === String(o);
+                              return (
+                                <button key={o} type="button"
+                                  onClick={() => updateGsdm(c.id, { duration_limit: String(o) })}
+                                  className="px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors"
+                                  style={{
+                                    border: picked ? "1px solid var(--color-accent)" : "1px solid var(--color-border)",
+                                    color: picked ? "var(--color-accent)" : "var(--color-text-primary)",
+                                    backgroundColor: picked ? "var(--color-panel)" : "transparent",
+                                  }}>
+                                  {o} hr
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <p className="text-xs mt-1" style={{ color: "#F0D68A" }}>
+                            intermediate zone — choose one
+                            {activeDur.nearer ? ` (nearer the ${activeDur.nearer} hr side)` : ""}
+                          </p>
+                        </>
                       )}
                     </div>
-                  </div>
-                )}
+                  )}
 
+                  <div className="text-right">
+                    <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeMaf.data.source}</p>
+                    {activeDur && (
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeDur.source}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* application zone read off BoM GSDM Figure 1 */}
+              {activeZone && (
+                <div className="mb-5 rounded-lg px-4 py-3"
+                  style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
+                        Application Zone
+                      </p>
+                      <p className="text-xl font-bold mt-0.5"
+                        style={{ color: activeZone.gtsmr_applicable ? "var(--color-accent)" : "#F0D68A" }}>
+                        {activeZone.zone_label}
+                      </p>
+                      {activeZone.gtsmr_applicable && (
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                          GTSMR summer → {activeZone.gtsmr_summer}
+                          {activeZone.gtsmr_winter ? ` · winter → ${activeZone.gtsmr_winter}` : " · winter left unset"}
+                        </p>
+                      )}
+                      {activeZone.gsam_applicable && (
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                          GSAM summer → {activeZone.gsam_summer} · autumn → {activeZone.gsam_autumn}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                      {activeZone.source}
+                    </p>
+                  </div>
+                  {activeZone.notes.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {activeZone.notes.map((n, i) => (
+                        <li key={i} className="text-xs" style={{ color: "#F0D68A" }}>• {n}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                    Zones are read from the Bureau&apos;s own zone polygons; all fields below stay editable.
+                  </p>
+                </div>
+              )}
+
+              {/* Catchment factors from the Bureau's GTSMR gridded data */}
+              {activeGtf && (
+                <div className="mb-5 rounded-lg px-4 py-3"
+                  style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
+                      Catchment Factors
+                    </p>
+                    <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeGtf.source}</p>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2">
+                    <div>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW summer</p>
+                      <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                        {activeGtf.epw_summer.toFixed(2)} <span className="text-xs font-normal">mm</span>
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                        MAF {activeGtf.maf_summer.toFixed(3)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW winter</p>
+                      <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                        {activeGtf.epw_winter !== null ? activeGtf.epw_winter.toFixed(2) : "—"}
+                        <span className="text-xs font-normal"> mm</span>
+                      </p>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                        MAF {activeGtf.maf_winter !== null ? activeGtf.maf_winter.toFixed(3) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>TAF</p>
+                      <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                        {activeGtf.taf !== null ? activeGtf.taf.toFixed(3) : "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>DAF</p>
+                      <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
+                        {activeGtf.daf !== null ? activeGtf.daf.toFixed(3) : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
+                    <p className="text-xs" style={{ color: "var(--color-text-secondary)", maxWidth: "40rem" }}>
+                      Standard EPW {activeGtf.epw_standard_summer} mm annual / {activeGtf.epw_standard_winter} mm winter
+                      (guidebook §2.3.1). Read at the catchment centroid, so the fields below are locked to the
+                      Bureau&apos;s data. Unlock only to substitute a value you have derived yourself — for example an
+                      EPW averaged over the catchment outline, which is what §2.3.1 actually asks for.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setGtUnlocked(u => ({ ...u, [c.id]: !u[c.id] }))}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                      style={{
+                        border: gtLocked ? "1px solid var(--color-border)" : "1px solid #7a6a3a",
+                        color: gtLocked ? "var(--color-text-secondary)" : "#F0D68A",
+                        backgroundColor: "transparent",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-panel)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                    >
+                      {gtLocked ? "🔒 Unlock to override" : "🔓 Overridden — relock"}
+                    </button>
+                  </div>
+                  {!gtLocked && (
+                    <p className="text-xs mt-1" style={{ color: "#F0D68A" }}>
+                      Unlocked — edits below replace the Bureau&apos;s gridded values. Re-entering the coordinates
+                      will refill them.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* 3. GSDM — only when picked in panel 2 */}
+              {gsdmStep && showParams && (
+              <Panel step={gsdmStep} title="GSDM">
                 {c.gsdm_enabled && (
                   <Section title="GSDM Parameters">
                     <Field label="Duration Limit (hr)">
@@ -1000,124 +1122,8 @@ export default function PmpPage() {
               )}
 
               {/* 4. GTSMR / GSAM — only when picked in panel 2 */}
-              {longStep && (
+              {longStep && showParams && (
               <Panel step={longStep} title="GTSMR / GSAM">
-                {/* application zone read off BoM GSDM Figure 1 */}
-                {activeZone && (
-                  <div className="mb-5 rounded-lg px-4 py-3"
-                    style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
-                          Application Zone
-                        </p>
-                        <p className="text-xl font-bold mt-0.5"
-                          style={{ color: activeZone.gtsmr_applicable ? "var(--color-accent)" : "#F0D68A" }}>
-                          {activeZone.zone_label}
-                        </p>
-                        {activeZone.gtsmr_applicable && (
-                          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                            GTSMR summer → {activeZone.gtsmr_summer}
-                            {activeZone.gtsmr_winter ? ` · winter → ${activeZone.gtsmr_winter}` : " · winter left unset"}
-                          </p>
-                        )}
-                        {activeZone.gsam_applicable && (
-                          <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                            GSAM summer → {activeZone.gsam_summer} · autumn → {activeZone.gsam_autumn}
-                          </p>
-                        )}
-                      </div>
-                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                        {activeZone.source}
-                      </p>
-                    </div>
-                    {activeZone.notes.length > 0 && (
-                      <ul className="mt-2 space-y-1">
-                        {activeZone.notes.map((n, i) => (
-                          <li key={i} className="text-xs" style={{ color: "#F0D68A" }}>• {n}</li>
-                        ))}
-                      </ul>
-                    )}
-                    <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
-                      Zones are read from the Bureau&apos;s own zone polygons; all fields below stay editable.
-                    </p>
-                  </div>
-                )}
-
-                {/* Catchment factors from the Bureau's GTSMR gridded data */}
-                {activeGtf && (
-                  <div className="mb-5 rounded-lg px-4 py-3"
-                    style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
-                    <div className="flex items-start justify-between gap-4 flex-wrap">
-                      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-secondary)" }}>
-                        Catchment Factors
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{activeGtf.source}</p>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2">
-                      <div>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW summer</p>
-                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-                          {activeGtf.epw_summer.toFixed(2)} <span className="text-xs font-normal">mm</span>
-                        </p>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                          MAF {activeGtf.maf_summer.toFixed(3)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>EPW winter</p>
-                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-                          {activeGtf.epw_winter !== null ? activeGtf.epw_winter.toFixed(2) : "—"}
-                          <span className="text-xs font-normal"> mm</span>
-                        </p>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                          MAF {activeGtf.maf_winter !== null ? activeGtf.maf_winter.toFixed(3) : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>TAF</p>
-                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-                          {activeGtf.taf !== null ? activeGtf.taf.toFixed(3) : "—"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>DAF</p>
-                        <p className="text-lg font-bold" style={{ color: "var(--color-accent)" }}>
-                          {activeGtf.daf !== null ? activeGtf.daf.toFixed(3) : "—"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
-                      <p className="text-xs" style={{ color: "var(--color-text-secondary)", maxWidth: "40rem" }}>
-                        Standard EPW {activeGtf.epw_standard_summer} mm annual / {activeGtf.epw_standard_winter} mm winter
-                        (guidebook §2.3.1). Read at the catchment centroid, so the fields below are locked to the
-                        Bureau&apos;s data. Unlock only to substitute a value you have derived yourself — for example an
-                        EPW averaged over the catchment outline, which is what §2.3.1 actually asks for.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setGtUnlocked(u => ({ ...u, [c.id]: !u[c.id] }))}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-                        style={{
-                          border: gtLocked ? "1px solid var(--color-border)" : "1px solid #7a6a3a",
-                          color: gtLocked ? "var(--color-text-secondary)" : "#F0D68A",
-                          backgroundColor: "transparent",
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-panel)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                      >
-                        {gtLocked ? "🔒 Unlock to override" : "🔓 Overridden — relock"}
-                      </button>
-                    </div>
-                    {!gtLocked && (
-                      <p className="text-xs mt-1" style={{ color: "#F0D68A" }}>
-                        Unlocked — edits below replace the Bureau&apos;s gridded values. Re-entering the coordinates
-                        will refill them.
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 {c.gtsmr_enabled && activeZone?.gtsmr_applicable !== false && (
                   <>
                     <Section title="GTSMR — Summer">
