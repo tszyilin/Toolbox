@@ -427,6 +427,21 @@ function niceStep(raw: number) {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag;
 }
 
+/** Toggle revealing the values that came from the Bureau's data. */
+function DerivedToggle({ open, count, onClick }:
+  { open: boolean; count: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-4 text-xs font-medium transition-opacity opacity-70 hover:opacity-100"
+      style={{ color: "var(--color-text-secondary)" }}
+    >
+      {open ? "▾" : "▸"} {open ? "Hide" : "Show"} the {count} values read from the Bureau&apos;s data
+    </button>
+  );
+}
+
 /** A numbered step panel — "1. Catchment Profile", etc. */
 function Panel({ step, title, children }: { step: number; title: string; children: React.ReactNode }) {
   return (
@@ -478,9 +493,9 @@ export default function PmpPage() {
   const [results, setResults] = useState<CatchmentResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /* The parameter panels are the working behind the numbers — they stay hidden
-     until a calculation has been run, then remain available for adjustment. */
-  const [showParams, setShowParams] = useState(false);
+  /* Fields the Bureau's data supplies are collapsed by default — they are there
+     to be checked, not filled in. Fields the engineer must supply stay visible. */
+  const [showDerived, setShowDerived] = useState<Record<string, boolean>>({});
 
   // The tab bar edits one catchment at a time; fall back to the first if the
   // active one was just removed.
@@ -620,6 +635,10 @@ export default function PmpPage() {
   // Results follow the selected tab; the backend returns them in catchment order.
   const activeIndex = catchments.findIndex(c => c.id === active?.id);
   const activeResult = activeIndex >= 0 ? results[activeIndex] : undefined;
+  // A catchment with no method selected produces nothing, so guard the button.
+  const hasMethod = (c: CatchmentForm) => c.gsdm_enabled || c.gtsmr_enabled || c.gsam_enabled;
+  const withoutMethod = catchments.filter(c => !hasMethod(c));
+  const canCalculate = withoutMethod.length < catchments.length;
 
   /** Any input change makes the shown results stale — drop them rather than
    *  leave charts on screen that no longer match the form (unticking a method
@@ -714,7 +733,6 @@ export default function PmpPage() {
       }
       const data = await res.json();
       setResults(data.results);
-      setShowParams(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -891,8 +909,8 @@ export default function PmpPage() {
 
               {/* What the figures give for this centroid — shown before Calculate,
                   since the duration limit in the intermediate zone is a choice. */}
-              {/* read off BoM GSDM Figures 2 and 3 for this centroid */}
-              {activeMaf?.data && (
+              {/* read off BoM GSDM Figures 2 and 3 — only relevant while GSDM is picked */}
+              {c.gsdm_enabled && activeMaf?.data && (
                 <div className="mb-5 rounded-lg px-4 py-3 flex items-start justify-between gap-4 flex-wrap"
                   style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
                   <div>
@@ -968,8 +986,8 @@ export default function PmpPage() {
                 </div>
               )}
 
-              {/* application zone read off BoM GSDM Figure 1 */}
-              {activeZone && (
+              {/* application zone — only relevant while GTSMR/GSAM is picked */}
+              {longOn && activeZone && (
                 <div className="mb-5 rounded-lg px-4 py-3"
                   style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
                   <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1010,8 +1028,8 @@ export default function PmpPage() {
                 </div>
               )}
 
-              {/* Catchment factors from the Bureau's GTSMR gridded data */}
-              {activeGtf && (
+              {/* Catchment factors — GTSMR grids, so only while GTSMR is picked */}
+              {c.gtsmr_enabled && activeGtf && (
                 <div className="mb-5 rounded-lg px-4 py-3"
                   style={{ backgroundColor: "var(--color-elevated)", border: "1px solid var(--color-border)" }}>
                   <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -1085,47 +1103,69 @@ export default function PmpPage() {
               )}
 
               {/* 3. GSDM — only when picked in panel 2 */}
-              {gsdmStep && showParams && (
+              {gsdmStep && (
               <Panel step={gsdmStep} title="GSDM">
                 {c.gsdm_enabled && (
-                  <Section title="GSDM Parameters">
-                    <Field label="Duration Limit (hr)">
-                      <select value={c.gsdm.duration_limit} onChange={(e) => updateGsdm(c.id, { duration_limit: e.target.value })} style={selectStyle}>
-                        {[0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6].map((d) => (
-                          <option key={d} value={d}>{d}</option>
-                        ))}
-                      </select>
-                    </Field>
-                    <Field label="Smooth Terrain (%)">
-                      <input type="number" step="any" min="0" max="100" value={c.gsdm.smooth_fraction} onChange={(e) => updateGsdm(c.id, { smooth_fraction: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Rough Terrain (%)">
-                      <input type="number" step="any" min="0" max="100" value={c.gsdm.rough_fraction} onChange={(e) => updateGsdm(c.id, { rough_fraction: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Elevation Factor (EAF)">
-                      <input type="number" step="any" value={c.gsdm.elevation_factor} onChange={(e) => updateGsdm(c.id, { elevation_factor: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label={activeMaf?.data ? "Moisture Factor (MAF) · from Fig 3" : "Moisture Factor (MAF)"}>
-                      <input
-                        type="number" step="any" value={c.gsdm.moisture_factor}
-                        onChange={(e) => updateGsdm(c.id, { moisture_factor: e.target.value })}
-                        style={{
-                          ...inputStyle,
-                          borderColor: activeMaf?.data && c.gsdm.moisture_factor === String(activeMaf.data.maf)
-                            ? "var(--color-accent)" : "var(--color-border)",
-                        }}
-                      />
-                    </Field>
-                  </Section>
+                  <>
+                    {/* What the engineer has to judge — the figures cannot supply these */}
+                    <Section title="Your inputs">
+                      <Field label="Smooth Terrain (%)">
+                        <input type="number" step="any" min="0" max="100" value={c.gsdm.smooth_fraction} onChange={(e) => updateGsdm(c.id, { smooth_fraction: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="Rough Terrain (%)">
+                        <input type="number" step="any" min="0" max="100" value={c.gsdm.rough_fraction} onChange={(e) => updateGsdm(c.id, { rough_fraction: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="Elevation Factor (EAF)">
+                        <input type="number" step="any" value={c.gsdm.elevation_factor} onChange={(e) => updateGsdm(c.id, { elevation_factor: e.target.value })} style={inputStyle} />
+                      </Field>
+                    </Section>
+
+                    <DerivedToggle
+                      open={!!showDerived[c.id]}
+                      count={2}
+                      onClick={() => setShowDerived(s => ({ ...s, [c.id]: !s[c.id] }))}
+                    />
+                    {showDerived[c.id] && (
+                      <Section title="From the figures">
+                        <Field label="Duration Limit (hr) · Fig 2">
+                          <select value={c.gsdm.duration_limit} onChange={(e) => updateGsdm(c.id, { duration_limit: e.target.value })} style={selectStyle}>
+                            {[0.25, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6].map((d) => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </Field>
+                        <Field label="Moisture Factor (MAF) · Fig 3">
+                          <input
+                            type="number" step="any" value={c.gsdm.moisture_factor}
+                            onChange={(e) => updateGsdm(c.id, { moisture_factor: e.target.value })}
+                            style={{
+                              ...inputStyle,
+                              borderColor: activeMaf?.data && c.gsdm.moisture_factor === String(activeMaf.data.maf)
+                                ? "var(--color-accent)" : "var(--color-border)",
+                            }}
+                          />
+                        </Field>
+                      </Section>
+                    )}
+                  </>
                 )}
               </Panel>
               )}
 
               {/* 4. GTSMR / GSAM — only when picked in panel 2 */}
-              {longStep && showParams && (
+              {longStep && (
               <Panel step={longStep} title="GTSMR / GSAM">
                 {c.gtsmr_enabled && activeZone?.gtsmr_applicable !== false && (
                   <>
+                    {/* Every GTSMR value comes from the Bureau's grids, so the whole
+                        block is collapsed — it is here to be checked, not filled in. */}
+                    <DerivedToggle
+                      open={!!showDerived[c.id + "_gt"]}
+                      count={8}
+                      onClick={() => setShowDerived(s => ({ ...s, [c.id + "_gt"]: !s[c.id + "_gt"] }))}
+                    />
+                    {showDerived[c.id + "_gt"] && (
+                    <>
                     <Section title="GTSMR — Summer">
                       <LockedField label="EPW Avg Summer (mm)" locked={gtLocked}>
                         <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.epw_avg_summer}
@@ -1175,10 +1215,12 @@ export default function PmpPage() {
                           style={gtLocked ? lockedInputStyle : inputStyle} />
                       </LockedField>
                     </Section>
+                    </>
+                    )}
                   </>
                 )}
 
-                {/* GSAM params */}
+                {/* GSAM params — no grids ship for GSAM, so these are all yours */}
                 {c.gsam_enabled && activeZone?.gsam_applicable !== false && (
                   <>
                     <Section title="GSAM — Summer">
@@ -1223,13 +1265,22 @@ export default function PmpPage() {
           })}
 
           <div className="flex flex-wrap gap-3 items-center">
-            <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              {catchments.length} catchment{catchments.length === 1 ? "" : "s"} · calculates all of them
-            </span>
+            <div>
+              <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                {catchments.length} catchment{catchments.length === 1 ? "" : "s"} · calculates all of them
+              </span>
+              {withoutMethod.length > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "#F0D68A" }}>
+                  {canCalculate
+                    ? `No method picked for ${withoutMethod.map(c => c.name.trim() || `Catchment ${catchments.indexOf(c) + 1}`).join(", ")} — ${withoutMethod.length === 1 ? "it returns" : "they return"} no depths.`
+                    : "Pick at least one method in step 2 before calculating."}
+                </p>
+              )}
+            </div>
             <div className="flex-1" />
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !canCalculate}
               className="px-6 py-2 rounded-lg text-sm disabled:cursor-not-allowed transition-colors tb-btn-primary"
             >
               {loading ? "Calculating…" : "Calculate PMP"}
@@ -1294,9 +1345,18 @@ export default function PmpPage() {
                 </div>
 
                 {/* depth-duration curves */}
-                <div className="px-6 pt-4">
-                  <PmpChart result={r} />
-                </div>
+                {!r.gsdm && !r.gtsmr && !r.gsam ? (
+                  <div className="px-6 py-5">
+                    <p className="text-sm" style={{ color: "#F0D68A" }}>
+                      No method was applied to this catchment, so there is nothing to plot.
+                      Pick GSDM or GTSMR/GSAM in step 2 and calculate again.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="px-6 pt-4">
+                    <PmpChart result={r} />
+                  </div>
+                )}
                 <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
                   {r.gsdm && (
                     <div>
