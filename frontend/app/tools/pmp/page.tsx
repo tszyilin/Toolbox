@@ -180,6 +180,27 @@ const selectStyle: React.CSSProperties = { ...inputStyle };
 /* Secondary button — outline on the panel surface, matching the other tool pages. */
 const ghostBtnStyle: React.CSSProperties = { border: "1px solid var(--color-border)", color: "var(--color-text-secondary)", backgroundColor: "transparent" };
 
+/* A field whose value came from the Bureau's data rather than the user. */
+const lockedInputStyle: React.CSSProperties = {
+  ...inputStyle,
+  backgroundColor: "var(--color-bg)",
+  color: "var(--color-text-secondary)",
+  cursor: "not-allowed",
+};
+
+function LockedField({ label, locked, children }:
+  { label: string; locked: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={labelStyle}>
+        {label}
+        {locked && <span title="Read from the Bureau's gridded data" style={{ marginLeft: 5 }}>🔒</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -490,6 +511,8 @@ export default function PmpPage() {
   const [dur, setDur] = useState<Record<string, DurationLookup | undefined>>({});
   const [zone, setZone] = useState<Record<string, ZoneLookup | undefined>>({});
   const [gtf, setGtf] = useState<Record<string, GtsmrFactors | undefined>>({});
+  // Grid-derived fields are read-only until the engineer deliberately unlocks them.
+  const [gtUnlocked, setGtUnlocked] = useState<Record<string, boolean>>({});
   const mafTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeId_ = active?.id;
@@ -767,6 +790,8 @@ export default function PmpPage() {
             const longOn = c.gtsmr_enabled || c.gsam_enabled;
             const gsdmStep = c.gsdm_enabled ? 3 : null;
             const longStep = longOn ? (c.gsdm_enabled ? 4 : 3) : null;
+            // Lock the GTSMR values that came from the grids, unless unlocked.
+            const gtLocked = !!activeGtf && !gtUnlocked[c.id];
             return (
             <div key={c.id} className="space-y-6">
               {/* 1. Catchment profile */}
@@ -1048,75 +1073,128 @@ export default function PmpPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs mt-2" style={{ color: "var(--color-text-secondary)" }}>
-                      Standard EPW {activeGtf.epw_standard_summer} mm annual / {activeGtf.epw_standard_winter} mm winter
-                      (guidebook §2.3.1). Values are read at the centroid and fill the fields below — all still editable.
-                    </p>
+                    <div className="mt-2 flex items-end justify-between gap-4 flex-wrap">
+                      <p className="text-xs" style={{ color: "var(--color-text-secondary)", maxWidth: "40rem" }}>
+                        Standard EPW {activeGtf.epw_standard_summer} mm annual / {activeGtf.epw_standard_winter} mm winter
+                        (guidebook §2.3.1). Read at the catchment centroid, so the fields below are locked to the
+                        Bureau&apos;s data. Unlock only to substitute a value you have derived yourself — for example an
+                        EPW averaged over the catchment outline, which is what §2.3.1 actually asks for.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setGtUnlocked(u => ({ ...u, [c.id]: !u[c.id] }))}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                        style={{
+                          border: gtLocked ? "1px solid var(--color-border)" : "1px solid #7a6a3a",
+                          color: gtLocked ? "var(--color-text-secondary)" : "#F0D68A",
+                          backgroundColor: "transparent",
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-panel)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                      >
+                        {gtLocked ? "🔒 Unlock to override" : "🔓 Overridden — relock"}
+                      </button>
+                    </div>
+                    {!gtLocked && (
+                      <p className="text-xs mt-1" style={{ color: "#F0D68A" }}>
+                        Unlocked — edits below replace the Bureau&apos;s gridded values. Re-entering the coordinates
+                        will refill them.
+                      </p>
+                    )}
                   </div>
                 )}
 
                 {c.gtsmr_enabled && activeZone?.gtsmr_applicable !== false && (
-                  <Section title="GTSMR Parameters">
-                    <Field label="EPW Avg Summer (mm)">
-                      <input type="number" step="any" value={c.gtsmr.epw_avg_summer} onChange={(e) => updateGtsmr(c.id, { epw_avg_summer: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="EPW Std Summer (mm)">
-                      <input type="number" step="any" value={c.gtsmr.epw_std_summer} onChange={(e) => updateGtsmr(c.id, { epw_std_summer: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Summer Zone">
-                      <select value={c.gtsmr.zone_summer} onChange={(e) => updateGtsmr(c.id, { zone_summer: e.target.value })} style={selectStyle}>
-                        {GTSMR_ZONES_SUMMER.map((z) => <option key={z} value={z}>{z}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="EPW Avg Winter (mm)">
-                      <input type="number" step="any" value={c.gtsmr.epw_avg_winter} onChange={(e) => updateGtsmr(c.id, { epw_avg_winter: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="EPW Std Winter (mm)">
-                      <input type="number" step="any" value={c.gtsmr.epw_std_winter} onChange={(e) => updateGtsmr(c.id, { epw_std_winter: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Winter Zone">
-                      <select value={c.gtsmr.zone_winter} onChange={(e) => updateGtsmr(c.id, { zone_winter: e.target.value })} style={selectStyle}>
-                        {GTSMR_ZONES_WINTER.map((z) => <option key={z} value={z}>{z}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Decay Amplitude Factor">
-                      <input type="number" step="any" value={c.gtsmr.decay_factor} onChange={(e) => updateGtsmr(c.id, { decay_factor: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Topographic Factor (TAF)">
-                      <input type="number" step="any" value={c.gtsmr.topographic_factor} onChange={(e) => updateGtsmr(c.id, { topographic_factor: e.target.value })} style={inputStyle} />
-                    </Field>
-                  </Section>
+                  <>
+                    <Section title="GTSMR — Summer">
+                      <LockedField label="EPW Avg Summer (mm)" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.epw_avg_summer}
+                          onChange={(e) => updateGtsmr(c.id, { epw_avg_summer: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                      <LockedField label="EPW Std Summer (mm)" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.epw_std_summer}
+                          onChange={(e) => updateGtsmr(c.id, { epw_std_summer: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                      <Field label="Summer Zone">
+                        <select value={c.gtsmr.zone_summer} onChange={(e) => updateGtsmr(c.id, { zone_summer: e.target.value })} style={selectStyle}>
+                          {GTSMR_ZONES_SUMMER.map((z) => <option key={z} value={z}>{z}</option>)}
+                        </select>
+                      </Field>
+                    </Section>
+
+                    <Section title="GTSMR — Winter">
+                      <LockedField label="EPW Avg Winter (mm)" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.epw_avg_winter}
+                          onChange={(e) => updateGtsmr(c.id, { epw_avg_winter: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                      <LockedField label="EPW Std Winter (mm)" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.epw_std_winter}
+                          onChange={(e) => updateGtsmr(c.id, { epw_std_winter: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                      <Field label="Winter Zone">
+                        <select value={c.gtsmr.zone_winter} onChange={(e) => updateGtsmr(c.id, { zone_winter: e.target.value })} style={selectStyle}>
+                          {GTSMR_ZONES_WINTER.map((z) => <option key={z} value={z}>{z}</option>)}
+                        </select>
+                      </Field>
+                    </Section>
+
+                    {/* DAF and TAF are catchment-wide — they apply to both seasons */}
+                    <Section title="GTSMR — Both Seasons">
+                      <LockedField label="Decay Amplitude Factor" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.decay_factor}
+                          onChange={(e) => updateGtsmr(c.id, { decay_factor: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                      <LockedField label="Topographic Factor (TAF)" locked={gtLocked}>
+                        <input type="number" step="any" readOnly={gtLocked} value={c.gtsmr.topographic_factor}
+                          onChange={(e) => updateGtsmr(c.id, { topographic_factor: e.target.value })}
+                          style={gtLocked ? lockedInputStyle : inputStyle} />
+                      </LockedField>
+                    </Section>
+                  </>
                 )}
 
                 {/* GSAM params */}
                 {c.gsam_enabled && activeZone?.gsam_applicable !== false && (
-                  <Section title="GSAM Parameters">
-                    <Field label="EPW Avg Summer (mm)">
-                      <input type="number" step="any" value={c.gsam.epw_avg_summer} onChange={(e) => updateGsam(c.id, { epw_avg_summer: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="EPW Std Summer (mm)">
-                      <input type="number" step="any" value={c.gsam.epw_std_summer} onChange={(e) => updateGsam(c.id, { epw_std_summer: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Summer Zone">
-                      <select value={c.gsam.zone_summer} onChange={(e) => updateGsam(c.id, { zone_summer: e.target.value })} style={selectStyle}>
-                        {GSAM_ZONES_SUMMER.map((z) => <option key={z} value={z}>{z}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="EPW Avg Autumn (mm)">
-                      <input type="number" step="any" value={c.gsam.epw_avg_autumn} onChange={(e) => updateGsam(c.id, { epw_avg_autumn: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="EPW Std Autumn (mm)">
-                      <input type="number" step="any" value={c.gsam.epw_std_autumn} onChange={(e) => updateGsam(c.id, { epw_std_autumn: e.target.value })} style={inputStyle} />
-                    </Field>
-                    <Field label="Autumn Zone">
-                      <select value={c.gsam.zone_autumn} onChange={(e) => updateGsam(c.id, { zone_autumn: e.target.value })} style={selectStyle}>
-                        {GSAM_ZONES_AUTUMN.map((z) => <option key={z} value={z}>{z}</option>)}
-                      </select>
-                    </Field>
-                    <Field label="Topographic Factor (TAF)">
-                      <input type="number" step="any" value={c.gsam.topographic_factor} onChange={(e) => updateGsam(c.id, { topographic_factor: e.target.value })} style={inputStyle} />
-                    </Field>
-                  </Section>
+                  <>
+                    <Section title="GSAM — Summer">
+                      <Field label="EPW Avg Summer (mm)">
+                        <input type="number" step="any" value={c.gsam.epw_avg_summer} onChange={(e) => updateGsam(c.id, { epw_avg_summer: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="EPW Std Summer (mm)">
+                        <input type="number" step="any" value={c.gsam.epw_std_summer} onChange={(e) => updateGsam(c.id, { epw_std_summer: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="Summer Zone">
+                        <select value={c.gsam.zone_summer} onChange={(e) => updateGsam(c.id, { zone_summer: e.target.value })} style={selectStyle}>
+                          {GSAM_ZONES_SUMMER.map((z) => <option key={z} value={z}>{z}</option>)}
+                        </select>
+                      </Field>
+                    </Section>
+
+                    <Section title="GSAM — Autumn">
+                      <Field label="EPW Avg Autumn (mm)">
+                        <input type="number" step="any" value={c.gsam.epw_avg_autumn} onChange={(e) => updateGsam(c.id, { epw_avg_autumn: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="EPW Std Autumn (mm)">
+                        <input type="number" step="any" value={c.gsam.epw_std_autumn} onChange={(e) => updateGsam(c.id, { epw_std_autumn: e.target.value })} style={inputStyle} />
+                      </Field>
+                      <Field label="Autumn Zone">
+                        <select value={c.gsam.zone_autumn} onChange={(e) => updateGsam(c.id, { zone_autumn: e.target.value })} style={selectStyle}>
+                          {GSAM_ZONES_AUTUMN.map((z) => <option key={z} value={z}>{z}</option>)}
+                        </select>
+                      </Field>
+                    </Section>
+
+                    <Section title="GSAM — Both Seasons">
+                      <Field label="Topographic Factor (TAF)">
+                        <input type="number" step="any" value={c.gsam.topographic_factor} onChange={(e) => updateGsam(c.id, { topographic_factor: e.target.value })} style={inputStyle} />
+                      </Field>
+                    </Section>
+                  </>
                 )}
               </Panel>
               )}
