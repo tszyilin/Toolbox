@@ -879,6 +879,14 @@ export default function PmpPage() {
             const longOn = c.gtsmr_enabled || c.gsam_enabled;
             const gsdmStep = c.gsdm_enabled ? 3 : null;
             const longStep = longOn ? (c.gsdm_enabled ? 4 : 3) : null;
+            // Figure 1 can rule a method out for this centroid; its fields are
+            // then hidden, and the panel says so rather than sitting empty.
+            const gtsmrShown = c.gtsmr_enabled && activeZone?.gtsmr_applicable !== false;
+            const gsamShown = c.gsam_enabled && activeZone?.gsam_applicable !== false;
+            const ruledOut = [
+              c.gtsmr_enabled && !gtsmrShown ? "GTSMR" : null,
+              c.gsam_enabled && !gsamShown ? "GSAM" : null,
+            ].filter(Boolean);
             // Lock the GTSMR values that came from the grids, unless unlocked.
             const gtLocked = !!activeGtf && !gtUnlocked[c.id];
             return (
@@ -1220,7 +1228,7 @@ export default function PmpPage() {
               {/* 4. GTSMR / GSAM — only when picked in panel 2 */}
               {longStep && (
               <Panel step={longStep} title="GTSMR / GSAM">
-                {c.gtsmr_enabled && activeZone?.gtsmr_applicable !== false && (
+                {gtsmrShown && (
                   <>
                     {/* Every GTSMR value comes from the Bureau's grids, so the whole
                         block is collapsed — it is here to be checked, not filled in. */}
@@ -1286,7 +1294,7 @@ export default function PmpPage() {
                 )}
 
                 {/* GSAM params — no grids ship for GSAM, so these are all yours */}
-                {c.gsam_enabled && activeZone?.gsam_applicable !== false && (
+                {gsamShown && (
                   <>
                     <Section title="GSAM — Summer">
                       <Field label="EPW Avg Summer (mm)">
@@ -1322,6 +1330,19 @@ export default function PmpPage() {
                       </Field>
                     </Section>
                   </>
+                )}
+
+                {/* Say why a picked method has no fields, rather than showing
+                    a panel with nothing in it. */}
+                {ruledOut.length > 0 && (
+                  <p className={`text-sm ${gtsmrShown || gsamShown ? "mt-4" : ""}`} style={{ color: "#F0D68A" }}>
+                    Figure 1 places this catchment outside the {ruledOut.join(" and ")} application
+                    zone{ruledOut.length > 1 ? "s" : ""}, so{" "}
+                    {ruledOut.length > 1 ? "those methods are" : `${ruledOut[0]} is`} left out of the
+                    calculation.
+                    {!gtsmrShown && !gsamShown &&
+                      " There is nothing to set here — pick another method in step 2, or check the centroid in step 1."}
+                  </p>
                 )}
               </Panel>
               )}
