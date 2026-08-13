@@ -539,7 +539,9 @@ export default function PmpPage() {
   const [catchments, setCatchments] = useState<CatchmentForm[]>([makeCatchment("1")]);
   const [nextId, setNextId] = useState(2);
   const [activeId, setActiveId] = useState("1");
-  const [results, setResults] = useState<CatchmentResult[]>([]);
+  /* Keyed by catchment id so each one can be calculated, kept and
+     invalidated on its own. */
+  const [results, setResults] = useState<Record<string, CatchmentResult>>({});
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -573,7 +575,6 @@ export default function PmpPage() {
     setCatchments((prev) => [...prev, makeCatchment(id)]);
     setNextId((n) => n + 1);
     setActiveId(id);
-    setResults([]);
   }
 
   function removeCatchment(id: string) {
@@ -585,8 +586,13 @@ export default function PmpPage() {
       }
       return next;
     });
-    // results are matched to catchments by position, so drop them
-    setResults([]);
+    // drop only the removed catchment's result
+    setResults((r) => {
+      if (!r[id]) return r;
+      const next = { ...r };
+      delete next[id];
+      return next;
+    });
   }
 
   /** GTSMR and GSAM are picked together as the one long-duration option. */
@@ -704,43 +710,50 @@ export default function PmpPage() {
   const activeDur = activeId_ ? dur[activeId_] : undefined;
   const activeZone = activeId_ ? zone[activeId_] : undefined;
   const activeGtf = activeId_ ? gtf[activeId_] : undefined;
-  // Results follow the selected tab; the backend returns them in catchment order.
-  const activeIndex = catchments.findIndex(c => c.id === active?.id);
-  const activeResult = activeIndex >= 0 ? results[activeIndex] : undefined;
+  // Results follow the selected tab.
+  const activeResult = active ? results[active.id] : undefined;
+  // Catchments that currently hold a result, in tab order.
+  const calculated = catchments.filter((c) => results[c.id]);
   // A catchment with no method selected produces nothing, so guard the button.
   const hasMethod = (c: CatchmentForm) => c.gsdm_enabled || c.gtsmr_enabled || c.gsam_enabled;
   const withoutMethod = catchments.filter(c => !hasMethod(c));
+  const activeHasMethod = !!active && hasMethod(active);
   const canCalculate = withoutMethod.length < catchments.length;
 
-  /** Any input change makes the shown results stale — drop them rather than
+  /** An input change makes that catchment's result stale — drop it rather than
    *  leave charts on screen that no longer match the form (unticking a method
-   *  used to leave its curves plotted). */
-  function invalidateResults() {
-    setResults((r) => (r.length ? [] : r));
+   *  used to leave its curves plotted). Other catchments keep theirs. */
+  function invalidateResults(id: string) {
+    setResults((r) => {
+      if (!r[id]) return r;
+      const next = { ...r };
+      delete next[id];
+      return next;
+    });
   }
 
   function updateCatchment(id: string, patch: Partial<CatchmentForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)));
-    invalidateResults();
+    invalidateResults(id);
   }
 
   function updateGsdm(id: string, patch: Partial<GsdmForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gsdm: { ...c.gsdm, ...patch } } : c)));
-    invalidateResults();
+    invalidateResults(id);
   }
 
   function updateGtsmr(id: string, patch: Partial<GtsmrForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gtsmr: { ...c.gtsmr, ...patch } } : c)));
-    invalidateResults();
+    invalidateResults(id);
   }
 
   function updateGsam(id: string, patch: Partial<GsamForm>) {
     setCatchments((prev) => prev.map((c) => (c.id === id ? { ...c, gsam: { ...c.gsam, ...patch } } : c)));
-    invalidateResults();
+    invalidateResults(id);
   }
 
-  function buildPayload() {
-    return catchments.map((c) => {
+  function buildPayload(list: CatchmentForm[] = catchments) {
+    return list.map((c) => {
       // A method Figure 1 rules out for this catchment is hidden, so don't
       // calculate it either.
       const z = zone[c.id];
@@ -791,8 +804,8 @@ export default function PmpPage() {
 
   /** Blank or half-typed numbers reach the API as null and come back as a
       validation failure, so catch them here where the field has a name. */
-  function findIncomplete() {
-    for (const c of catchments) {
+  function findIncomplete(list: CatchmentForm[]) {
+    for (const c of list) {
       const label = c.name.trim() || `Catchment ${catchments.indexOf(c) + 1}`;
       const z = zone[c.id];
       const on = {
@@ -812,37 +825,44 @@ export default function PmpPage() {
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  /** Calculate the given catchments, leaving any others' results alone. */
+  async function calculate(list: CatchmentForm[]) {
     setError(null);
-    setResults([]);
+    if (!list.length) return;
 
-    const incomplete = findIncomplete();
+    const incomplete = findIncomplete(list);
     if (incomplete) {
       // Show the catchment the message is about.
       setActiveId(incomplete.id);
       setError(
-        `${incomplete.label} still needs ${listPhrase(incomplete.missing)}. ` +
-        `Calculate runs every catchment, so fill that in or remove the tab.`
+        `${incomplete.label} still needs ${listPhrase(incomplete.missing)}.` +
+        (list.length > 1
+          ? " Calculate all runs every catchment — fill that in, remove the tab, or calculate this one on its own."
+          : "")
       );
       return;
     }
-
-    const payload = buildPayload();
 
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/tools/pmp/calculate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ catchments: payload }),
+        body: JSON.stringify({ catchments: buildPayload(list) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(describeApiError(data?.detail, "An error occurred."));
       }
       const data = await res.json();
-      setResults(data.results);
+      // The backend answers in the order sent, so pair them back up by id.
+      setResults((prev) => {
+        const next = { ...prev };
+        (data.results as CatchmentResult[]).forEach((r, i) => {
+          if (list[i]) next[list[i].id] = r;
+        });
+        return next;
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -850,15 +870,22 @@ export default function PmpPage() {
     }
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    // The form's own button calculates the catchment on screen.
+    if (active) await calculate([active]);
+  }
+
   async function downloadXLSX() {
-    if (!results.length || exporting) return;
+    // Export mirrors what is on screen: the catchments holding a result.
+    if (!calculated.length || exporting) return;
     setError(null);
     setExporting(true);
     try {
       const res = await fetch(`${API_URL}/tools/pmp/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ catchments: buildPayload() }),
+        body: JSON.stringify({ catchments: buildPayload(calculated) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -937,7 +964,7 @@ export default function PmpPage() {
 
           {/* Export sits at the far end of the tab bar — it covers every
               catchment, not just the selected tab. */}
-          {results.length > 0 && (
+          {calculated.length > 0 && (
             <button
               type="button"
               onClick={downloadXLSX}
@@ -949,7 +976,7 @@ export default function PmpPage() {
             >
               {exporting
                 ? "Preparing…"
-                : `Download Excel${results.length > 1 ? ` (all ${results.length})` : ""}`}
+                : `Download Excel${calculated.length > 1 ? ` (${calculated.length} catchments)` : ""}`}
             </button>
           )}
         </div>
@@ -1438,23 +1465,46 @@ export default function PmpPage() {
           <div className="flex flex-wrap gap-3 items-center">
             <div>
               <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                {catchments.length} catchment{catchments.length === 1 ? "" : "s"} · calculates all of them
+                {catchments.length} catchment{catchments.length === 1 ? "" : "s"}
+                {calculated.length > 0 && ` · ${calculated.length} calculated`}
               </span>
-              {withoutMethod.length > 0 && (
+              {!activeHasMethod && (
                 <p className="text-xs mt-0.5" style={{ color: "#F0D68A" }}>
-                  {canCalculate
-                    ? `No method picked for ${withoutMethod.map(c => c.name.trim() || `Catchment ${catchments.indexOf(c) + 1}`).join(", ")} — ${withoutMethod.length === 1 ? "it returns" : "they return"} no depths.`
-                    : "Pick at least one method in step 2 before calculating."}
+                  Pick at least one method in step 2 before calculating.
+                </p>
+              )}
+              {activeHasMethod && withoutMethod.length > 0 && (
+                <p className="text-xs mt-0.5" style={{ color: "#F0D68A" }}>
+                  No method picked for {withoutMethod.map(c => c.name.trim() || `Catchment ${catchments.indexOf(c) + 1}`).join(", ")} — {withoutMethod.length === 1 ? "it returns" : "they return"} no depths.
                 </p>
               )}
             </div>
             <div className="flex-1" />
+            {/* Each catchment can be calculated on its own, so an unfinished
+                tab never holds up a finished one. */}
+            {catchments.length > 1 && (
+              <button
+                type="button"
+                onClick={() => calculate(catchments.filter(hasMethod))}
+                disabled={loading || !canCalculate}
+                className="px-4 py-2 rounded-lg text-sm font-medium disabled:cursor-not-allowed transition-colors"
+                style={ghostBtnStyle}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                Calculate all {catchments.length}
+              </button>
+            )}
             <button
               type="submit"
-              disabled={loading || !canCalculate}
+              disabled={loading || !activeHasMethod}
               className="px-6 py-2 rounded-lg text-sm disabled:cursor-not-allowed transition-colors tb-btn-primary"
             >
-              {loading ? "Calculating…" : "Calculate PMP"}
+              {loading
+                ? "Calculating…"
+                : catchments.length > 1
+                  ? `Calculate ${active?.name.trim() || "this catchment"}`
+                  : "Calculate PMP"}
             </button>
           </div>
         </form>
