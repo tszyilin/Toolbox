@@ -889,6 +889,8 @@ export default function PmpPage() {
             ].filter(Boolean);
             // Lock the GTSMR values that came from the grids, unless unlocked.
             const gtLocked = !!activeGtf && !gtUnlocked[c.id];
+            // The GTSMR block starts open — unset means shown, not hidden.
+            const gtOpen = showDerived[c.id + "_gt"] ?? true;
             return (
             <div key={c.id} className="space-y-6">
               {/* 1. Catchment profile */}
@@ -1230,14 +1232,15 @@ export default function PmpPage() {
               <Panel step={longStep} title="GTSMR / GSAM">
                 {gtsmrShown && (
                   <>
-                    {/* Every GTSMR value comes from the Bureau's grids, so the whole
-                        block is collapsed — it is here to be checked, not filled in. */}
+                    {/* Every GTSMR value comes from the Bureau's grids, so the
+                        block is here to be checked rather than filled in — but
+                        it is shown by default so the panel is never bare. */}
                     <DerivedToggle
-                      open={!!showDerived[c.id + "_gt"]}
+                      open={gtOpen}
                       count={8}
-                      onClick={() => setShowDerived(s => ({ ...s, [c.id + "_gt"]: !s[c.id + "_gt"] }))}
+                      onClick={() => setShowDerived(s => ({ ...s, [c.id + "_gt"]: !gtOpen }))}
                     />
-                    {showDerived[c.id + "_gt"] && (
+                    {gtOpen && (
                     <>
                     <Section title="GTSMR — Summer">
                       <LockedField label="EPW Avg Summer (mm)" locked={gtLocked}>
