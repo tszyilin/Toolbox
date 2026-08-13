@@ -1,8 +1,9 @@
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from calculators.pmp import calculate
+from calculators.pmp.workbook import build_workbook
 from calculators import gsdm_maf, gsdm_duration, gtsmr_zones, gtsmr_grids
 
 router = APIRouter(prefix="/tools/pmp", tags=["pmp"])
@@ -116,3 +117,24 @@ async def pmp_calculate(req: PmpRequest):
         return JSONResponse(content={"results": results})
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+
+
+XLSX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+@router.post("/export")
+async def pmp_export(req: PmpRequest):
+    """Recalculate and return the results as an .xlsx workbook: a summary sheet
+    plus the full depth-duration series for every case, one sheet per catchment."""
+    try:
+        payload = [c.model_dump() for c in req.catchments]
+        results = calculate(payload)
+        content = build_workbook(results)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    return Response(
+        content=content,
+        media_type=XLSX_MEDIA_TYPE,
+        headers={"Content-Disposition": 'attachment; filename="pmp_results.xlsx"'},
+    )

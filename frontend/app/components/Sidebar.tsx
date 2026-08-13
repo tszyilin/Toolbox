@@ -4,10 +4,92 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CATEGORIES, ToolIcon } from "./toolCategories";
+import { useRecentTools, type RecentTool } from "./useRecentTools";
+
+function RecentRow({
+  tool,
+  active,
+  onRename,
+  onRemove,
+}: {
+  tool: RecentTool;
+  active: boolean;
+  onRename: (name: string) => void;
+  onRemove: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(tool.name);
+
+  function commit() {
+    onRename(draft);
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-2 px-2.5 py-1.5">
+        <input
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit();
+            if (e.key === "Escape") {
+              setDraft(tool.name);
+              setEditing(false);
+            }
+          }}
+          className="tb-input flex-1 min-w-0 px-2 py-1 text-xs outline-none"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`group flex items-center gap-1 tb-nav-item ${active ? "tb-nav-item--active" : ""}`} style={{ padding: "4px 6px" }}>
+      <Link href={tool.href} className="flex items-center gap-2.5 min-w-0 flex-1 px-1 py-1">
+        <span className="flex-shrink-0 w-4 flex items-center justify-center">
+          <ToolIcon icon={tool.icon} />
+        </span>
+        <span className="text-xs font-medium leading-tight truncate" title={tool.name}>{tool.name}</span>
+      </Link>
+
+      <span className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={() => {
+            setDraft(tool.name);
+            setEditing(true);
+          }}
+          className="w-5 h-5 flex items-center justify-center rounded"
+          style={{ color: "var(--color-text-secondary)" }}
+          title="Rename"
+          aria-label={`Rename ${tool.name}`}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M8.2 1.8l2 2L4.4 9.6l-2.6.6.6-2.6 5.8-5.8z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          onClick={onRemove}
+          className="w-5 h-5 flex items-center justify-center rounded"
+          style={{ color: "var(--color-text-secondary)" }}
+          title="Remove from recent"
+          aria-label={`Remove ${tool.name} from recent`}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2.5 3.5h7M5 3.5V2.5h2v1M3.4 3.5l.4 6h4.4l.4-6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </span>
+    </div>
+  );
+}
 
 export default function Sidebar() {
   const [query, setQuery] = useState("");
   const pathname = usePathname();
+  const { recents, rename, remove } = useRecentTools(pathname);
 
   const navItems = [
     { name: "Home", href: "/", icon: "home" as const },
@@ -76,21 +158,46 @@ export default function Sidebar() {
             })
           )
         ) : (
-          navItems.map((item) => {
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 transition-colors tb-nav-item ${active ? "tb-nav-item--active" : ""}`}
-              >
-                <span className="flex-shrink-0 w-5 flex items-center justify-center">
-                  <ToolIcon icon={item.icon} />
-                </span>
-                <span className="text-sm font-medium leading-tight truncate">{item.name}</span>
-              </Link>
-            );
-          })
+          <>
+            {navItems.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 transition-colors tb-nav-item ${active ? "tb-nav-item--active" : ""}`}
+                >
+                  <span className="flex-shrink-0 w-5 flex items-center justify-center">
+                    <ToolIcon icon={item.icon} />
+                  </span>
+                  <span className="text-sm font-medium leading-tight truncate">{item.name}</span>
+                </Link>
+              );
+            })}
+
+            {/* Divider below the category list */}
+            <hr className="my-3 border-0" style={{ borderTop: "1px solid var(--color-border)" }} />
+
+            {/* Recently used tools */}
+            <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+              Recent
+            </p>
+            {recents.length === 0 ? (
+              <p className="px-2 py-1 text-[11px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
+                Tools you open show up here.
+              </p>
+            ) : (
+              recents.map((tool) => (
+                <RecentRow
+                  key={tool.href}
+                  tool={tool}
+                  active={pathname === tool.href}
+                  onRename={(name) => rename(tool.href, name)}
+                  onRemove={() => remove(tool.href)}
+                />
+              ))
+            )}
+          </>
         )}
       </nav>
     </aside>

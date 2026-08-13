@@ -492,6 +492,7 @@ export default function PmpPage() {
   const [activeId, setActiveId] = useState("1");
   const [results, setResults] = useState<CatchmentResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /* Fields the Bureau's data supplies are collapsed by default — they are there
      to be checked, not filled in. Fields the engineer must supply stay visible. */
@@ -667,12 +668,8 @@ export default function PmpPage() {
     invalidateResults();
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setResults([]);
-
-    const payload = catchments.map((c) => {
+  function buildPayload() {
+    return catchments.map((c) => {
       // A method Figure 1 rules out for this catchment is hidden, so don't
       // calculate it either.
       const z = zone[c.id];
@@ -719,6 +716,14 @@ export default function PmpPage() {
       }
       return base;
     });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setResults([]);
+
+    const payload = buildPayload();
 
     setLoading(true);
     try {
@@ -740,26 +745,32 @@ export default function PmpPage() {
     }
   }
 
-  function downloadCSV() {
-    if (!results.length) return;
-    const headers = ["Catchment", "Area (km²)", "GSDM PMP (mm)", "GTSMR PMP (mm)", "GSAM PMP (mm)", "Governing PMP (mm)", "Volume (m³)"];
-    const rows = results.map((r) => [
-      r.name,
-      r.area,
-      r.gsdm?.pmp_mm ?? "",
-      r.gtsmr?.pmp_mm ?? "",
-      r.gsam?.pmp_mm ?? "",
-      r.governing_pmp_mm ?? "",
-      r.volume_m3 ?? "",
-    ]);
-    const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "pmp_results.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  async function downloadXLSX() {
+    if (!results.length || exporting) return;
+    setError(null);
+    setExporting(true);
+    try {
+      const res = await fetch(`${API_URL}/tools/pmp/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ catchments: buildPayload() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.detail ?? "Export failed.");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "pmp_results.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -1301,13 +1312,16 @@ export default function PmpPage() {
                 Results — {activeResult.name}
               </h2>
               <button
-                onClick={downloadCSV}
+                onClick={downloadXLSX}
+                disabled={exporting}
                 className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 style={ghostBtnStyle}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               >
-                Download CSV{results.length > 1 ? ` (all ${results.length})` : ""}
+                {exporting
+                  ? "Preparing…"
+                  : `Download Excel${results.length > 1 ? ` (all ${results.length})` : ""}`}
               </button>
             </div>
 

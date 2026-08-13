@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import equal_area_slope, interpolation, pmp, river_resistance, chat
+from routers import equal_area_slope, interpolation, pmp, river_resistance
 
 app = FastAPI(title="Toolbox API")
 
@@ -16,7 +16,6 @@ app.include_router(equal_area_slope.router)
 app.include_router(interpolation.router)
 app.include_router(pmp.router)
 app.include_router(river_resistance.router)
-app.include_router(chat.router)
 
 
 @app.get("/health")
