@@ -278,6 +278,26 @@ function TerrainHelp() {
   );
 }
 
+/** The Bureau's elevation adjustment, quoted from GSDM section 4.3. */
+function ElevationHelp() {
+  return (
+    <>
+      <span className="block font-semibold mb-1">Elevation Adjustment Factor</span>
+      <span className="block">
+        Estimate the mean elevation of the catchment from a topographic map. At 1500 m or
+        below the EAF is 1. Above that it is reduced by 0.05 for every 300 m by which the
+        mean elevation exceeds 1500 m.
+      </span>
+      <span className="block mt-1.5">
+        For most catchments in Australia the EAF is 1.
+      </span>
+      <span className="block mt-1.5" style={{ color: "var(--color-text-secondary)" }}>
+        BoM Generalised Short Duration Method, section 4.3
+      </span>
+    </>
+  );
+}
+
 function Field({ label, help, children }: { label: string; help?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
@@ -1370,7 +1390,7 @@ export default function PmpPage() {
                       <Field label="Rough Terrain (%)" help={<TerrainHelp />}>
                         <input type="number" step="any" min="0" max="100" value={c.gsdm.rough_fraction} onChange={(e) => updateGsdm(c.id, { rough_fraction: e.target.value })} style={inputStyle} />
                       </Field>
-                      <Field label="Elevation Factor (EAF)">
+                      <Field label="Elevation Factor (EAF)" help={<ElevationHelp />}>
                         <input type="number" step="any" value={c.gsdm.elevation_factor} onChange={(e) => updateGsdm(c.id, { elevation_factor: e.target.value })} style={inputStyle} />
                       </Field>
                       {/* Figure 3 fills this in, but the reading is a judgement
