@@ -828,6 +828,24 @@ export default function PmpPage() {
           >
             +
           </button>
+
+          {/* Export sits at the far end of the tab bar — it covers every
+              catchment, not just the selected tab. */}
+          {results.length > 0 && (
+            <button
+              type="button"
+              onClick={downloadXLSX}
+              disabled={exporting}
+              className="ml-auto self-center flex-shrink-0 px-3 py-1.5 mb-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors"
+              style={ghostBtnStyle}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+            >
+              {exporting
+                ? "Preparing…"
+                : `Download Excel${results.length > 1 ? ` (all ${results.length})` : ""}`}
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6 mt-6">
@@ -1319,23 +1337,9 @@ export default function PmpPage() {
 
         {activeResult && (
           <div className="mt-8 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                Results — {activeResult.name}
-              </h2>
-              <button
-                onClick={downloadXLSX}
-                disabled={exporting}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={ghostBtnStyle}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-              >
-                {exporting
-                  ? "Preparing…"
-                  : `Download Excel${results.length > 1 ? ` (all ${results.length})` : ""}`}
-              </button>
-            </div>
+            <h2 className="text-lg font-semibold" style={{ color: "var(--color-text-primary)" }}>
+              Results — {activeResult.name}
+            </h2>
 
             {/* Per-method breakdown for the selected catchment */}
             {[activeResult].map((r, i) => (
