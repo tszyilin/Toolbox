@@ -97,6 +97,9 @@ class GsamParams(BaseModel):
 class Catchment(BaseModel):
     name: str
     area: float
+    # Recorded so an export can state the centroid the lookups came from.
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     gsdm_enabled: bool = False
     gsdm: Optional[GsdmParams] = None
     gtsmr_enabled: bool = False
@@ -129,7 +132,7 @@ async def pmp_export(req: PmpRequest):
     try:
         payload = [c.model_dump() for c in req.catchments]
         results = calculate(payload)
-        content = build_workbook(results)
+        content = build_workbook(results, payload)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
 

@@ -202,10 +202,89 @@ function LockedField({ label, locked, children }:
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** A "?" beside a label that opens the definition of the term. */
+function HelpTip({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const wrap = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <span className="relative inline-block align-middle" ref={wrap}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label="What does this mean?"
+        className="ml-1 w-4 h-4 rounded-full text-[10px] font-bold leading-none transition-colors"
+        style={{
+          border: "1px solid var(--color-border)",
+          color: open ? "var(--color-accent)" : "var(--color-text-secondary)",
+        }}
+      >
+        ?
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className="absolute left-0 top-6 z-40 block w-72 rounded-lg px-3 py-2.5 text-xs font-normal normal-case tracking-normal shadow-2xl"
+          style={{
+            backgroundColor: "var(--color-elevated)",
+            border: "1px solid var(--color-border)",
+            color: "var(--color-text-primary)",
+            lineHeight: 1.5,
+          }}
+        >
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/** The Bureau's own terrain classification, quoted from GSDM section 4.2. */
+function TerrainHelp() {
+  return (
+    <>
+      <span className="block font-semibold mb-1">Terrain category</span>
+      <span className="block">
+        &ldquo;Rough&rdquo; terrain is that in which elevation changes of 50 m or more within
+        horizontal distances of 400 m are common. Terrain within 20 km of generally rough
+        terrain is also classified as rough; smooth terrain further than 20 km from it is
+        weighted by area, so the two shares add to 100%.
+      </span>
+      <span className="block mt-1.5">
+        If a catchment proves difficult to classify, the whole catchment should be
+        classified as rough. Terrain does not affect durations of an hour or less.
+      </span>
+      <span className="block mt-1.5" style={{ color: "var(--color-text-secondary)" }}>
+        BoM Generalised Short Duration Method, section 4.2
+      </span>
+    </>
+  );
+}
+
+function Field({ label, help, children }: { label: string; help?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
-      <label style={labelStyle}>{label}</label>
+      <label style={labelStyle}>
+        {label}
+        {help && <HelpTip>{help}</HelpTip>}
+      </label>
       {children}
     </div>
   );
@@ -762,6 +841,10 @@ export default function PmpPage() {
       const base: Record<string, unknown> = {
         name: c.name || `Catchment ${c.id}`,
         area: parseFloat(c.area),
+        // Carried so the exported workbook can state the centroid the
+        // Bureau's lookups were read at.
+        latitude: parseFloat(c.latitude),
+        longitude: parseFloat(c.longitude),
         gsdm_enabled: c.gsdm_enabled,
         gtsmr_enabled: gtsmrOn,
         gsam_enabled: gsamOn,
@@ -1281,10 +1364,10 @@ export default function PmpPage() {
                   <>
                     {/* What the engineer has to judge — the figures cannot supply these */}
                     <Section title="Your inputs">
-                      <Field label="Smooth Terrain (%)">
+                      <Field label="Smooth Terrain (%)" help={<TerrainHelp />}>
                         <input type="number" step="any" min="0" max="100" value={c.gsdm.smooth_fraction} onChange={(e) => updateGsdm(c.id, { smooth_fraction: e.target.value })} style={inputStyle} />
                       </Field>
-                      <Field label="Rough Terrain (%)">
+                      <Field label="Rough Terrain (%)" help={<TerrainHelp />}>
                         <input type="number" step="any" min="0" max="100" value={c.gsdm.rough_fraction} onChange={(e) => updateGsdm(c.id, { rough_fraction: e.target.value })} style={inputStyle} />
                       </Field>
                       <Field label="Elevation Factor (EAF)">

@@ -88,13 +88,76 @@ def _catchment_frame(result: dict) -> pd.DataFrame:
     return frame
 
 
-def build_workbook(results: list[dict]) -> bytes:
-    """Return the .xlsx bytes for a set of calculated catchment results."""
+# Input fields per method, as (payload key, column label).
+_GSDM_INPUTS = [
+    ("duration_limit", "Duration limit (hr)"),
+    ("smooth_fraction", "Smooth terrain (%)"),
+    ("rough_fraction", "Rough terrain (%)"),
+    ("elevation_factor", "Elevation factor (EAF)"),
+    ("moisture_factor", "Moisture factor (MAF)"),
+]
+_GTSMR_INPUTS = [
+    ("epw_avg_summer", "EPW avg summer (mm)"),
+    ("epw_std_summer", "EPW std summer (mm)"),
+    ("zone_summer", "Summer zone"),
+    ("epw_avg_winter", "EPW avg winter (mm)"),
+    ("epw_std_winter", "EPW std winter (mm)"),
+    ("zone_winter", "Winter zone"),
+    ("decay_factor", "Decay amplitude factor"),
+    ("topographic_factor", "Topographic factor (TAF)"),
+]
+_GSAM_INPUTS = [
+    ("epw_avg_summer", "EPW avg summer (mm)"),
+    ("epw_std_summer", "EPW std summer (mm)"),
+    ("zone_summer", "Summer zone"),
+    ("epw_avg_autumn", "EPW avg autumn (mm)"),
+    ("epw_std_autumn", "EPW std autumn (mm)"),
+    ("zone_autumn", "Autumn zone"),
+    ("topographic_factor", "Topographic factor (TAF)"),
+]
+
+
+def _inputs_frame(catchments: list[dict]) -> pd.DataFrame:
+    """Every value the calculation was given, so a result can be reproduced."""
+    rows = []
+    for c in catchments:
+        row: dict = {
+            "Catchment": c.get("name", ""),
+            "Area (km2)": c.get("area"),
+            "Latitude": c.get("latitude"),
+            "Longitude": c.get("longitude"),
+            "Methods": ", ".join(
+                label
+                for key, label in (("gsdm_enabled", "GSDM"), ("gtsmr_enabled", "GTSMR"), ("gsam_enabled", "GSAM"))
+                if c.get(key)
+            ),
+        }
+        for method, label, fields in (
+            ("gsdm", "GSDM", _GSDM_INPUTS),
+            ("gtsmr", "GTSMR", _GTSMR_INPUTS),
+            ("gsam", "GSAM", _GSAM_INPUTS),
+        ):
+            params = c.get(method) if c.get(f"{method}_enabled") else None
+            for key, column in fields:
+                row[f"{label} · {column}"] = (params or {}).get(key)
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def build_workbook(results: list[dict], catchments: list[dict] | None = None) -> bytes:
+    """Return the .xlsx bytes for a set of calculated catchment results.
+
+    `catchments` is the request that produced them; when given, the values it
+    holds are written to their own sheet so the workbook records what was
+    entered as well as what came out.
+    """
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         _summary_frame(results).to_excel(writer, sheet_name="Summary", index=False)
+        if catchments:
+            _inputs_frame(catchments).to_excel(writer, sheet_name="Inputs", index=False)
 
-        used: set[str] = {"summary"}
+        used: set[str] = {"summary", "inputs"}
         for result in results:
             frame = _catchment_frame(result)
             sheet = _sheet_name(result.get("name", ""), used)
