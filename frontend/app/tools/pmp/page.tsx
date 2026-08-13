@@ -437,7 +437,7 @@ function DerivedToggle({ open, count, onClick }:
       className="mt-4 text-xs font-medium transition-opacity opacity-70 hover:opacity-100"
       style={{ color: "var(--color-text-secondary)" }}
     >
-      {open ? "▾" : "▸"} {open ? "Hide" : "Show"} the {count} values read from the Bureau&apos;s data
+      {open ? "▾" : "▸"} {open ? "Hide" : "Show"} the {count} value{count === 1 ? "" : "s"} read from the Bureau&apos;s data
     </button>
   );
 }
@@ -1129,11 +1129,34 @@ export default function PmpPage() {
                       <Field label="Elevation Factor (EAF)">
                         <input type="number" step="any" value={c.gsdm.elevation_factor} onChange={(e) => updateGsdm(c.id, { elevation_factor: e.target.value })} style={inputStyle} />
                       </Field>
+                      {/* Figure 3 fills this in, but the reading is a judgement
+                          between contours, so it stays an input you can override. */}
+                      <Field label="Moisture Factor (MAF)">
+                        <input
+                          type="number" step="any" value={c.gsdm.moisture_factor}
+                          onChange={(e) => updateGsdm(c.id, { moisture_factor: e.target.value })}
+                          style={{
+                            ...inputStyle,
+                            borderColor: activeMaf?.data && c.gsdm.moisture_factor === String(activeMaf.data.maf)
+                              ? "var(--color-accent)" : "var(--color-border)",
+                          }}
+                        />
+                        {activeMaf?.data && c.gsdm.moisture_factor !== String(activeMaf.data.maf) && (
+                          <button
+                            type="button"
+                            onClick={() => updateGsdm(c.id, { moisture_factor: String(activeMaf.data!.maf) })}
+                            className="mt-1 text-[11px] underline transition-opacity opacity-70 hover:opacity-100"
+                            style={{ color: "var(--color-text-secondary)" }}
+                          >
+                            Fig 3 reads {activeMaf.data.maf.toFixed(3)} — restore
+                          </button>
+                        )}
+                      </Field>
                     </Section>
 
                     <DerivedToggle
                       open={!!showDerived[c.id]}
-                      count={2}
+                      count={1}
                       onClick={() => setShowDerived(s => ({ ...s, [c.id]: !s[c.id] }))}
                     />
                     {showDerived[c.id] && (
@@ -1144,17 +1167,6 @@ export default function PmpPage() {
                               <option key={d} value={d}>{d}</option>
                             ))}
                           </select>
-                        </Field>
-                        <Field label="Moisture Factor (MAF) · Fig 3">
-                          <input
-                            type="number" step="any" value={c.gsdm.moisture_factor}
-                            onChange={(e) => updateGsdm(c.id, { moisture_factor: e.target.value })}
-                            style={{
-                              ...inputStyle,
-                              borderColor: activeMaf?.data && c.gsdm.moisture_factor === String(activeMaf.data.maf)
-                                ? "var(--color-accent)" : "var(--color-border)",
-                            }}
-                          />
                         </Field>
                       </Section>
                     )}
