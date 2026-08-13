@@ -1,9 +1,11 @@
-"""Build an .xlsx workbook of PMP results: a summary sheet plus the full
-depth-duration series for every case, one sheet per catchment."""
+"""Build an .xlsx workbook of PMP results: a summary sheet, then one sheet per
+catchment holding the inputs it was calculated from and the full
+depth-duration series for every case."""
 
 import io
 import re
 import pandas as pd
+from openpyxl.styles import Font
 
 # Column label for each case, in the order they should appear on a sheet.
 _CASES = [
@@ -117,51 +119,75 @@ _GSAM_INPUTS = [
 ]
 
 
-def _inputs_frame(catchments: list[dict]) -> pd.DataFrame:
-    """Every value the calculation was given, so a result can be reproduced."""
-    rows = []
-    for c in catchments:
-        row: dict = {
-            "Catchment": c.get("name", ""),
-            "Area (km2)": c.get("area"),
-            "Latitude": c.get("latitude"),
-            "Longitude": c.get("longitude"),
-            "Methods": ", ".join(
-                label
-                for key, label in (("gsdm_enabled", "GSDM"), ("gtsmr_enabled", "GTSMR"), ("gsam_enabled", "GSAM"))
-                if c.get(key)
-            ),
-        }
-        for method, label, fields in (
-            ("gsdm", "GSDM", _GSDM_INPUTS),
-            ("gtsmr", "GTSMR", _GTSMR_INPUTS),
-            ("gsam", "GSAM", _GSAM_INPUTS),
-        ):
-            params = c.get(method) if c.get(f"{method}_enabled") else None
-            for key, column in fields:
-                row[f"{label} · {column}"] = (params or {}).get(key)
-        rows.append(row)
-    return pd.DataFrame(rows)
+def _input_pairs(catchment: dict) -> list[tuple[str, object]]:
+    """The values this catchment was calculated from, as label/value rows.
+
+    Only the methods that were actually run are listed — a blank column for a
+    method nobody asked for is just noise.
+    """
+    pairs: list[tuple[str, object]] = [
+        ("Catchment", catchment.get("name", "")),
+        ("Area (km2)", catchment.get("area")),
+    ]
+    if catchment.get("latitude") is not None:
+        pairs.append(("Latitude", catchment.get("latitude")))
+    if catchment.get("longitude") is not None:
+        pairs.append(("Longitude", catchment.get("longitude")))
+    pairs.append((
+        "Methods",
+        ", ".join(
+            label
+            for key, label in (("gsdm_enabled", "GSDM"), ("gtsmr_enabled", "GTSMR"), ("gsam_enabled", "GSAM"))
+            if catchment.get(key)
+        ),
+    ))
+
+    for method, label, fields in (
+        ("gsdm", "GSDM", _GSDM_INPUTS),
+        ("gtsmr", "GTSMR", _GTSMR_INPUTS),
+        ("gsam", "GSAM", _GSAM_INPUTS),
+    ):
+        if not catchment.get(f"{method}_enabled"):
+            continue
+        params = catchment.get(method) or {}
+        for key, column in fields:
+            pairs.append((f"{label} · {column}", params.get(key)))
+    return pairs
 
 
 def build_workbook(results: list[dict], catchments: list[dict] | None = None) -> bytes:
     """Return the .xlsx bytes for a set of calculated catchment results.
 
-    `catchments` is the request that produced them; when given, the values it
-    holds are written to their own sheet so the workbook records what was
-    entered as well as what came out.
+    `catchments` is the request that produced them, in the same order; when
+    given, each catchment's sheet opens with the values it was calculated from
+    and the depth-duration series follows underneath.
     """
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         _summary_frame(results).to_excel(writer, sheet_name="Summary", index=False)
-        if catchments:
-            _inputs_frame(catchments).to_excel(writer, sheet_name="Inputs", index=False)
 
-        used: set[str] = {"summary", "inputs"}
-        for result in results:
-            frame = _catchment_frame(result)
+        used: set[str] = {"summary"}
+        for i, result in enumerate(results):
             sheet = _sheet_name(result.get("name", ""), used)
-            frame.to_excel(writer, sheet_name=sheet, index=False)
+            catchment = catchments[i] if catchments and i < len(catchments) else None
+            table_row = 0
+
+            if catchment:
+                pairs = _input_pairs(catchment)
+                pd.DataFrame(pairs, columns=["Input", "Value"]).to_excel(
+                    writer, sheet_name=sheet, index=False, startrow=1
+                )
+                # title + header + rows + a blank line before the results
+                table_row = 1 + 1 + len(pairs) + 2
+
+            _catchment_frame(result).to_excel(
+                writer, sheet_name=sheet, index=False, startrow=table_row + 1
+            )
+
+            worksheet = writer.sheets[sheet]
+            if catchment:
+                worksheet.cell(row=1, column=1, value="Inputs").font = Font(bold=True)
+            worksheet.cell(row=table_row + 1, column=1, value="PMP depth-duration series").font = Font(bold=True)
 
         # Widen columns so headers aren't clipped.
         for worksheet in writer.book.worksheets:
