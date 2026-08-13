@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CATEGORIES, ToolIcon } from "../../components/toolCategories";
+import ToolOpenLink from "../../components/ToolOpenLink";
 
 export function generateStaticParams() {
   return CATEGORIES.map((cat) => ({ slug: cat.slug }));
@@ -33,12 +34,10 @@ export default async function CategoryPage({
         <div className="max-w-3xl mx-auto">
           <div className="rounded-xl overflow-hidden tb-card">
             {category.tools.map((tool, i) => {
-              const LinkComp = tool.external ? "a" : Link;
               return (
-                <LinkComp
+                <ToolOpenLink
                   key={tool.href}
-                  href={tool.href}
-                  {...(tool.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  tool={tool}
                   className="flex items-start gap-3 px-5 py-4 transition-colors tb-row-hover"
                   style={{
                     borderTop: i === 0 ? "none" : "1px solid var(--color-border)",
@@ -53,7 +52,7 @@ export default async function CategoryPage({
                       <span className="block mt-0.5 text-xs" style={{ color: "var(--color-text-secondary)" }}>{tool.description}</span>
                     )}
                   </span>
-                </LinkComp>
+                </ToolOpenLink>
               );
             })}
           </div>

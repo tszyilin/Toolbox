@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SearchBar from "./SearchBar";
+import ToolOpenLink from "./ToolOpenLink";
 import { CATEGORIES, ToolIcon } from "./toolCategories";
 
 export default function FloatingSearch() {
@@ -72,14 +72,12 @@ export default function FloatingSearch() {
               </p>
             ) : (
               results.map(({ tool, categoryName }) => {
-                const LinkComp = tool.external ? "a" : Link;
                 const active = pathname === tool.href;
                 return (
-                  <LinkComp
+                  <ToolOpenLink
                     key={tool.href}
-                    href={tool.href}
-                    {...(tool.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                    onClick={() => setOpen(false)}
+                    tool={tool}
+                    onNavigate={() => setOpen(false)}
                     className={`flex items-center gap-3 mx-2 tb-nav-item ${active ? "tb-nav-item--active" : ""}`}
                   >
                     <span className="flex-shrink-0 w-5 flex items-center justify-center">
@@ -89,7 +87,7 @@ export default function FloatingSearch() {
                       <span className="block text-xs font-medium leading-tight truncate">{tool.name}</span>
                       <span className="block text-[10px] leading-tight" style={{ color: "var(--color-text-muted)" }}>{categoryName}</span>
                     </span>
-                  </LinkComp>
+                  </ToolOpenLink>
                 );
               })
             )}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo  } from "react";
+import { useJobSession } from "../../components/useJobSession";
 import Link from "next/link";
 
 const INPUT_STYLE = {
@@ -113,6 +114,19 @@ export default function InterpolationPage() {
   const [batchInput, setBatchInput] = useState("");
   const [queryMode, setQueryMode] = useState<"single" | "batch">("single");
   const [direction, setDirection] = useState<"getY" | "getX">("getY");
+
+  const jobSlot = useJobSession(
+    "/tools/interpolation",
+    { rows, queryInput, batchInput, queryMode, direction },
+    (saved) => {
+      if (!saved) return;
+      setRows(saved.rows);
+      setQueryInput(saved.queryInput);
+      setBatchInput(saved.batchInput);
+      setQueryMode(saved.queryMode);
+      setDirection(saved.direction);
+    },
+  );
 
   // Which axis is being typed in, and which is being solved for.
   const fromLabel = direction === "getY" ? "X" : "Y";
@@ -232,6 +246,7 @@ export default function InterpolationPage() {
 
   return (
     <main className="min-h-screen tb-bg">
+      {jobSlot}
       <div className="px-6 py-8">
         <div className="max-w-5xl mx-auto">
           <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>← Back to Toolbox</Link>

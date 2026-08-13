@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState  } from "react";
+import { useJobSession } from "../../components/useJobSession";
 import Link from "next/link";
 
 const _RAW_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -80,6 +81,16 @@ function Row({ label, value, unit }: { label: string; value: string | number; un
 export default function RiverResistancePage() {
   const [sections, setSections] = useState<SectionForm[]>([makeSection("1")]);
   const [nextId, setNextId] = useState(2);
+
+  const jobSlot = useJobSession(
+    "/tools/river-resistance",
+    { sections, nextId },
+    (saved) => {
+      if (!saved?.sections?.length) return;
+      setSections(saved.sections);
+      setNextId(saved.nextId);
+    },
+  );
   const [results, setResults] = useState<Result[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -149,6 +160,7 @@ export default function RiverResistancePage() {
 
   return (
     <main className="min-h-screen tb-bg">
+      {jobSlot}
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-8">
           <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>

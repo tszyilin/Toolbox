@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useJobSession } from "../../components/useJobSession";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -494,6 +495,23 @@ export default function PmpPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /* Catchments restored from a saved job already carry the values the lookups
+     would fill in — including any the engineer overrode — so the next lookup
+     for those catchments reports its figures without writing them back. */
+  const skipFill = useRef<Set<string>>(new Set());
+  const jobSlot = useJobSession(
+    "/tools/pmp",
+    { catchments, nextId, activeId },
+    (saved) => {
+      if (!saved?.catchments?.length) return;
+      skipFill.current = new Set(saved.catchments.map((c) => c.id));
+      setCatchments(saved.catchments);
+      setNextId(saved.nextId);
+      setActiveId(saved.activeId);
+    },
+  );
+
   /* Fields the Bureau's data supplies are collapsed by default — they are there
      to be checked, not filled in. Fields the engineer must supply stay visible. */
   const [showDerived, setShowDerived] = useState<Record<string, boolean>>({});
@@ -551,6 +569,9 @@ export default function PmpPage() {
     }
     if (mafTimer.current) clearTimeout(mafTimer.current);
     mafTimer.current = setTimeout(async () => {
+      // Restored catchments keep their saved values; the lookups still run so
+      // the figure panels can show what the Bureau's data says.
+      const fill = !skipFill.current.delete(activeId_);
       setMaf(m => ({ ...m, [activeId_]: { ...m[activeId_], loading: true } }));
       try {
         const res = await fetch(`${API_URL}/tools/pmp/maf?lat=${lat}&lon=${lon}`);
@@ -561,9 +582,11 @@ export default function PmpPage() {
         }
         setMaf(m => ({ ...m, [activeId_]: { loading: false, data: body, applied: true } }));
         // Fill the GSDM moisture factor; the field stays editable.
-        setCatchments(prev => prev.map(c =>
-          c.id === activeId_ ? { ...c, gsdm: { ...c.gsdm, moisture_factor: String(body.maf) } } : c
-        ));
+        if (fill) {
+          setCatchments(prev => prev.map(c =>
+            c.id === activeId_ ? { ...c, gsdm: { ...c.gsdm, moisture_factor: String(body.maf) } } : c
+          ));
+        }
 
         // Figure 2 gives the maximum duration for the same centroid.
         const dres = await fetch(`${API_URL}/tools/pmp/duration?lat=${lat}&lon=${lon}`);
@@ -572,7 +595,7 @@ export default function PmpPage() {
           setDur(m => ({ ...m, [activeId_]: dbody }));
           // Only fill it in when the zone is unambiguous; in the intermediate
           // zone the panel offers both and waits for a choice.
-          if (dbody.recommended !== null) {
+          if (fill && dbody.recommended !== null) {
             setCatchments(prev => prev.map(c =>
               c.id === activeId_ ? { ...c, gsdm: { ...c.gsdm, duration_limit: String(dbody.recommended) } } : c
             ));
@@ -584,7 +607,7 @@ export default function PmpPage() {
         if (zres.ok) {
           const zbody: ZoneLookup = await zres.json();
           setZone(m => ({ ...m, [activeId_]: zbody }));
-          setCatchments(prev => prev.map(c => {
+          if (fill) setCatchments(prev => prev.map(c => {
             if (c.id !== activeId_) return c;
             const next = { ...c };
             if (zbody.gtsmr_summer) {
@@ -606,7 +629,7 @@ export default function PmpPage() {
         if (gres.ok) {
           const gbody: GtsmrFactors = await gres.json();
           setGtf(m => ({ ...m, [activeId_]: gbody }));
-          setCatchments(prev => prev.map(c => {
+          if (fill) setCatchments(prev => prev.map(c => {
             if (c.id !== activeId_) return c;
             return {
               ...c,
@@ -775,6 +798,7 @@ export default function PmpPage() {
 
   return (
     <main className="min-h-screen tb-bg">
+      {jobSlot}
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-8">
           <Link href="/" className="text-sm hover:underline transition-colors" style={{ color: "var(--color-text-secondary)" }}>

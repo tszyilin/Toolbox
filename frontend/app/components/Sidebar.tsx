@@ -4,24 +4,15 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CATEGORIES, ToolIcon } from "./toolCategories";
-import { useRecentTools, type RecentTool } from "./useRecentTools";
+import ToolOpenLink from "./ToolOpenLink";
+import { removeJob, renameJob, useJobs, type Job } from "./jobs";
 
-function RecentRow({
-  tool,
-  active,
-  onRename,
-  onRemove,
-}: {
-  tool: RecentTool;
-  active: boolean;
-  onRename: (name: string) => void;
-  onRemove: () => void;
-}) {
+function JobRow({ job, active }: { job: Job; active: boolean }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(tool.name);
+  const [draft, setDraft] = useState(job.name);
 
   function commit() {
-    onRename(draft);
+    renameJob(job.id, draft);
     setEditing(false);
   }
 
@@ -36,7 +27,7 @@ function RecentRow({
           onKeyDown={(e) => {
             if (e.key === "Enter") commit();
             if (e.key === "Escape") {
-              setDraft(tool.name);
+              setDraft(job.name);
               setEditing(false);
             }
           }}
@@ -48,34 +39,35 @@ function RecentRow({
 
   return (
     <div className={`group flex items-center gap-1 tb-nav-item ${active ? "tb-nav-item--active" : ""}`} style={{ padding: "4px 6px" }}>
-      <Link href={tool.href} className="flex items-center gap-2.5 min-w-0 flex-1 px-1 py-1">
+      {/* Straight into this job's saved state — no prompt, the choice is made. */}
+      <Link href={`${job.href}?job=${job.id}`} className="flex items-center gap-2.5 min-w-0 flex-1 px-1 py-1">
         <span className="flex-shrink-0 w-4 flex items-center justify-center">
-          <ToolIcon icon={tool.icon} />
+          <ToolIcon icon={job.icon} />
         </span>
-        <span className="text-xs font-medium leading-tight truncate" title={tool.name}>{tool.name}</span>
+        <span className="text-xs font-medium leading-tight truncate" title={job.name}>{job.name}</span>
       </Link>
 
       <span className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => {
-            setDraft(tool.name);
+            setDraft(job.name);
             setEditing(true);
           }}
           className="w-5 h-5 flex items-center justify-center rounded"
           style={{ color: "var(--color-text-secondary)" }}
           title="Rename"
-          aria-label={`Rename ${tool.name}`}
+          aria-label={`Rename ${job.name}`}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M8.2 1.8l2 2L4.4 9.6l-2.6.6.6-2.6 5.8-5.8z" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
         <button
-          onClick={onRemove}
+          onClick={() => removeJob(job.id)}
           className="w-5 h-5 flex items-center justify-center rounded"
           style={{ color: "var(--color-text-secondary)" }}
-          title="Remove from recent"
-          aria-label={`Remove ${tool.name} from recent`}
+          title="Delete this job"
+          aria-label={`Delete ${job.name}`}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M2.5 3.5h7M5 3.5V2.5h2v1M3.4 3.5l.4 6h4.4l.4-6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
@@ -89,7 +81,7 @@ function RecentRow({
 export default function Sidebar() {
   const [query, setQuery] = useState("");
   const pathname = usePathname();
-  const { recents, rename, remove } = useRecentTools(pathname);
+  const jobs = useJobs();
 
   const navItems = [
     { name: "Home", href: "/", icon: "home" as const },
@@ -138,12 +130,10 @@ export default function Sidebar() {
           ) : (
             searchResults.map((tool) => {
               const active = pathname === tool.href;
-              const LinkComp = tool.external ? "a" : Link;
               return (
-                <LinkComp
+                <ToolOpenLink
                   key={tool.href}
-                  href={tool.href}
-                  {...(tool.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  tool={tool}
                   className={`flex items-center gap-3 transition-colors tb-nav-item ${active ? "tb-nav-item--active" : ""}`}
                 >
                   <span className="flex-shrink-0 w-5 flex items-center justify-center">
@@ -153,7 +143,7 @@ export default function Sidebar() {
                     <span className="text-sm font-medium leading-tight">{tool.name}</span>
                     <span className="block text-[10px] leading-tight" style={{ color: "var(--color-text-muted)" }}>{tool.categoryName}</span>
                   </span>
-                </LinkComp>
+                </ToolOpenLink>
               );
             })
           )
@@ -178,23 +168,17 @@ export default function Sidebar() {
             {/* Divider below the category list */}
             <hr className="my-3 border-0" style={{ borderTop: "1px solid var(--color-border)" }} />
 
-            {/* Recently used tools */}
+            {/* Saved jobs, most recently worked on first */}
             <p className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
               Recent
             </p>
-            {recents.length === 0 ? (
+            {jobs.length === 0 ? (
               <p className="px-2 py-1 text-[11px] leading-snug" style={{ color: "var(--color-text-muted)" }}>
                 Tools you open show up here.
               </p>
             ) : (
-              recents.map((tool) => (
-                <RecentRow
-                  key={tool.href}
-                  tool={tool}
-                  active={pathname === tool.href}
-                  onRename={(name) => rename(tool.href, name)}
-                  onRemove={() => remove(tool.href)}
-                />
+              jobs.map((job) => (
+                <JobRow key={job.id} job={job} active={pathname === job.href} />
               ))
             )}
           </>

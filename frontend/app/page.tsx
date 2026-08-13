@@ -1,16 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import SearchBar from "./components/SearchBar";
+import ToolOpenLink from "./components/ToolOpenLink";
 import { CATEGORIES, ToolIcon, type ToolLink } from "./components/toolCategories";
 
 function ToolRow({ tool, categoryName }: { tool: ToolLink; categoryName?: string }) {
-  const LinkComp = tool.external ? "a" : Link;
   return (
-    <LinkComp
-      href={tool.href}
-      {...(tool.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+    <ToolOpenLink
+      tool={tool}
       className="flex items-start gap-3 px-4 py-3 transition-colors"
       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-elevated)")}
       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
@@ -27,7 +25,7 @@ function ToolRow({ tool, categoryName }: { tool: ToolLink; categoryName?: string
           <span className="block mt-0.5 text-xs" style={{ color: "var(--color-text-secondary)" }}>{tool.description}</span>
         )}
       </span>
-    </LinkComp>
+    </ToolOpenLink>
   );
 }
 

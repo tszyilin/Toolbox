@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { useState  } from "react";
+import { useJobSession } from "../../components/useJobSession";
 import Link from "next/link";
 
 interface Result {
@@ -22,6 +23,20 @@ export default function EqualAreaSlopePage() {
   const [linesIdCol, setLinesIdCol] = useState("id");
   const [elevCol, setElevCol] = useState("Elev1");
   const [distCol, setDistCol] = useState("distance");
+
+  const jobSlot = useJobSession(
+    "/tools/equal-area-slope",
+    { mode, pastedData, pastedLineId, linesIdCol, elevCol, distCol },
+    (saved) => {
+      if (!saved) return;
+      setMode(saved.mode);
+      setPastedData(saved.pastedData);
+      setPastedLineId(saved.pastedLineId);
+      setLinesIdCol(saved.linesIdCol);
+      setElevCol(saved.elevCol);
+      setDistCol(saved.distCol);
+    },
+  );
   const [results, setResults] = useState<Result[]>([]);
   const [idColKey, setIdColKey] = useState<string>("id");
   const [loading, setLoading] = useState(false);
@@ -103,6 +118,7 @@ export default function EqualAreaSlopePage() {
 
   return (
     <main className="min-h-screen tb-bg">
+      {jobSlot}
       {/* Header */}
       <div className="px-6 py-8">
         <div className="max-w-4xl mx-auto">
