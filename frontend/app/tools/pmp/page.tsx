@@ -487,6 +487,54 @@ function MethodCheck({
   );
 }
 
+/** FastAPI returns validation failures as a list of objects; stringifying that
+    list is where "[object Object]" came from. */
+function describeApiError(detail: unknown, fallback: string): string {
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const parts = detail
+      .map((d) => {
+        const where = Array.isArray(d?.loc)
+          ? d.loc
+              .filter((p: unknown) => p !== "body" && p !== "catchments")
+              // The index of the offending catchment, as a 1-based position.
+              .map((p: unknown) => (typeof p === "number" ? `catchment ${p + 1}` : String(p)))
+              .join(" → ")
+          : "";
+        const msg = typeof d?.msg === "string" ? d.msg : "invalid value";
+        return where ? `${where}: ${msg}` : msg;
+      })
+      .filter(Boolean);
+    if (parts.length) return parts.join("; ");
+  }
+  return fallback;
+}
+
+/** Numeric fields each method needs, labelled as they are in the form. */
+const REQUIRED_FIELDS: { method: "gsdm" | "gtsmr" | "gsam"; key: string; label: string }[] = [
+  { method: "gsdm", key: "duration_limit", label: "Duration Limit" },
+  { method: "gsdm", key: "smooth_fraction", label: "Smooth Terrain (%)" },
+  { method: "gsdm", key: "rough_fraction", label: "Rough Terrain (%)" },
+  { method: "gsdm", key: "elevation_factor", label: "Elevation Factor (EAF)" },
+  { method: "gsdm", key: "moisture_factor", label: "Moisture Factor (MAF)" },
+  { method: "gtsmr", key: "epw_avg_summer", label: "EPW Avg Summer" },
+  { method: "gtsmr", key: "epw_std_summer", label: "EPW Std Summer" },
+  { method: "gtsmr", key: "epw_avg_winter", label: "EPW Avg Winter" },
+  { method: "gtsmr", key: "epw_std_winter", label: "EPW Std Winter" },
+  { method: "gtsmr", key: "decay_factor", label: "Decay Amplitude Factor" },
+  { method: "gtsmr", key: "topographic_factor", label: "Topographic Factor (TAF)" },
+  { method: "gsam", key: "epw_avg_summer", label: "EPW Avg Summer" },
+  { method: "gsam", key: "epw_std_summer", label: "EPW Std Summer" },
+  { method: "gsam", key: "epw_avg_autumn", label: "EPW Avg Autumn" },
+  { method: "gsam", key: "epw_std_autumn", label: "EPW Std Autumn" },
+  { method: "gsam", key: "topographic_factor", label: "Topographic Factor (TAF)" },
+];
+
+function listPhrase(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
 export default function PmpPage() {
   const [catchments, setCatchments] = useState<CatchmentForm[]>([makeCatchment("1")]);
   const [nextId, setNextId] = useState(2);
@@ -741,10 +789,44 @@ export default function PmpPage() {
     });
   }
 
+  /** Blank or half-typed numbers reach the API as null and come back as a
+      validation failure, so catch them here where the field has a name. */
+  function findIncomplete() {
+    for (const c of catchments) {
+      const label = c.name.trim() || `Catchment ${catchments.indexOf(c) + 1}`;
+      const z = zone[c.id];
+      const on = {
+        gsdm: c.gsdm_enabled,
+        gtsmr: c.gtsmr_enabled && z?.gtsmr_applicable !== false,
+        gsam: c.gsam_enabled && z?.gsam_applicable !== false,
+      };
+      const missing: string[] = [];
+      if (isNaN(parseFloat(c.area))) missing.push("Area");
+      for (const f of REQUIRED_FIELDS) {
+        if (!on[f.method]) continue;
+        const group = c[f.method] as unknown as Record<string, string>;
+        if (isNaN(parseFloat(group[f.key]))) missing.push(f.label);
+      }
+      if (missing.length) return { id: c.id, label, missing };
+    }
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setResults([]);
+
+    const incomplete = findIncomplete();
+    if (incomplete) {
+      // Show the catchment the message is about.
+      setActiveId(incomplete.id);
+      setError(
+        `${incomplete.label} still needs ${listPhrase(incomplete.missing)}. ` +
+        `Calculate runs every catchment, so fill that in or remove the tab.`
+      );
+      return;
+    }
 
     const payload = buildPayload();
 
@@ -757,7 +839,7 @@ export default function PmpPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.detail ?? "An error occurred.");
+        throw new Error(describeApiError(data?.detail, "An error occurred."));
       }
       const data = await res.json();
       setResults(data.results);
@@ -780,7 +862,7 @@ export default function PmpPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.detail ?? "Export failed.");
+        throw new Error(describeApiError(data?.detail, "Export failed."));
       }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
