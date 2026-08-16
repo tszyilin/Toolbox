@@ -468,13 +468,26 @@ function DurationChart({ title, series, name }: { title: string; series: Series[
             return (
               <g key={s.name}>
                 <path d={d} fill="none" stroke={s.colour} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-                {ctrl && (
-                  <circle cx={sx(ctrl.duration_hr)} cy={sy(ctrl.pmp_mm)} r={5}
+                {/* Every tabulated duration is marked, so the curve shows what was
+                    calculated rather than implying a continuous reading. The ring
+                    is the surface colour, which keeps overlapping points legible. */}
+                {pts.map(p => (
+                  <circle key={p.duration_hr} cx={sx(p.duration_hr)} cy={sy(p.pmp_mm)} r={4}
                     fill={s.colour} stroke="var(--color-panel)" strokeWidth={2} />
+                ))}
+                {/* The controlling duration keeps a halo so it still stands out
+                    now that its neighbours are marked too. */}
+                {ctrl && (
+                  <>
+                    <circle cx={sx(ctrl.duration_hr)} cy={sy(ctrl.pmp_mm)} r={6}
+                      fill={s.colour} stroke="var(--color-panel)" strokeWidth={2} />
+                    <circle cx={sx(ctrl.duration_hr)} cy={sy(ctrl.pmp_mm)} r={9}
+                      fill="none" stroke={s.colour} strokeWidth={1.5} />
+                  </>
                 )}
                 {hover && (() => {
                   const p = pts.find(q => q.duration_hr === hover.dur);
-                  return p ? <circle cx={sx(p.duration_hr)} cy={sy(p.pmp_mm)} r={4}
+                  return p ? <circle cx={sx(p.duration_hr)} cy={sy(p.pmp_mm)} r={5.5}
                     fill={s.colour} stroke="var(--color-panel)" strokeWidth={2} /> : null;
                 })()}
                 {labelled && (
