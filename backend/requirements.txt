@@ -6,3 +6,6 @@ pandas
 openpyxl
 python-dotenv
 anthropic
+geopandas
+rasterio
+shapely

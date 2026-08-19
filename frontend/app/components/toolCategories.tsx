@@ -38,7 +38,7 @@ export const CATEGORIES: Category[] = [
         name: "Equal Area Slope",
         href: "/tools/equal-area-slope",
         icon: "slope",
-        description: "Calculate equal area slope from surveyed cross-section data.",
+        description: "Calculate equal area slope from surveyed cross-section data, or from a stream-line shapefile sampled against a DEM.",
       },
       {
         name: "PMP Estimation",
